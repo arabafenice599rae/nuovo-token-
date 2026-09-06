@@ -1,0 +1,31 @@
+# Compiler files
+cache/
+out/
+
+# Commonly ignored directories
+.logs/
+.ignore/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Output di `forge doc`
+docs/book/
+
+# Dotenv file
+.env
+.env.*
+!.env.example
+
+# Report di analisi statica
+reports/
+crytic-export/
+report.md
+report.json
+*.sarif
+
+# Editor
+.vscode/
+.idea/

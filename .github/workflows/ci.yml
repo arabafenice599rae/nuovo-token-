@@ -1,0 +1,109 @@
+name: CI
+
+permissions: {}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_VERSION: "1.8.1"
+  SLITHER_VERSION: "0.11.6"
+  ADERYN_VERSION: "0.6.8"
+
+jobs:
+  forge:
+    name: Build & test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v${{ env.FOUNDRY_VERSION }}
+
+      - run: forge --version
+
+      - name: Formatting
+        run: forge fmt --check
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Test
+        run: FOUNDRY_PROFILE=ci forge test -vvv
+
+  slither:
+    name: Slither
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v${{ env.FOUNDRY_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Slither
+        run: pip install "slither-analyzer==${SLITHER_VERSION}" crytic-compile
+
+      - name: Run Slither
+        # La soglia di fallimento e' "fail_on": "medium" in slither.config.json
+        run: slither .
+
+  aderyn:
+    name: Aderyn
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v${{ env.FOUNDRY_VERSION }}
+
+      - name: Install Aderyn
+        run: |
+          set -euo pipefail
+          url="https://github.com/Cyfrin/aderyn/releases/download/aderyn-v${ADERYN_VERSION}/aderyn-x86_64-unknown-linux-gnu.tar.xz"
+          curl -fsSL "$url" -o /tmp/aderyn.tar.xz
+          tar -xJf /tmp/aderyn.tar.xz -C /tmp
+          sudo install -m 0755 /tmp/aderyn-x86_64-unknown-linux-gnu/aderyn /usr/local/bin/aderyn
+          aderyn --version
+
+      - name: Run Aderyn
+        run: |
+          mkdir -p reports
+          aderyn --output reports/aderyn-report.md
+          aderyn --output reports/aderyn-report.json
+          ./tools/aderyn-gate.sh reports/aderyn-report.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aderyn-report
+          path: reports/
+          if-no-files-found: ignore

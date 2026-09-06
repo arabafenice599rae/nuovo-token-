@@ -1,0 +1,23 @@
+# Aderyn - configurazione dello scan (https://cyfrin.gitbook.io/cyfrin-docs)
+# Elenco completo dei detector: `aderyn registry`
+
+# NON modificare: al momento e' supportata solo la versione 1
+version = 1
+
+# Root del progetto: la cartella che contiene foundry.toml
+root = "."
+
+# Sorgenti da analizzare (i contratti di produzione)
+src = "src/"
+
+# Fuori scope: dipendenze, test e script di deploy
+exclude = ["lib/", "test/", "script/"]
+
+[detectors]
+# Per default vengono eseguiti tutti i detector.
+# Escludere un detector solo dopo aver triagiato il finding e averlo documentato
+# in docs/static-analysis.md, es:
+# exclude = ["costly-loop"]
+
+[env]
+FOUNDRY_PROFILE = "default"

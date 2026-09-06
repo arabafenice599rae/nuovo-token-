@@ -1,0 +1,66 @@
+# https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+libs = ["lib"]
+
+# Toolchain pinning: cambiare solo insieme a .github/workflows/ci.yml e docs/static-analysis.md
+solc = "0.8.26"
+evm_version = "cancun"
+
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+# Metadati deterministici: bytecode riproducibile tra macchine diverse
+bytecode_hash = "none"
+cbor_metadata = false
+
+# Necessario a slither/aderyn per mappare i finding sul sorgente
+ast = true
+build_info = true
+extra_output = ["storageLayout"]
+
+# I warning del compilatore (e del linter) sono errori: la static analysis parte da un build pulito
+deny = "warnings"
+
+fs_permissions = [{ access = "read", path = "./out" }]
+
+[profile.default.fuzz]
+runs = 256
+
+[profile.default.invariant]
+runs = 256
+depth = 32
+fail_on_revert = false
+
+# Profilo CI: più giri di fuzzing, stessa configurazione di compilazione
+[profile.ci.fuzz]
+runs = 10_000
+
+[profile.ci.invariant]
+runs = 1_000
+depth = 64
+
+# Profilo "lite": build veloce in locale, non usarlo per l'analisi
+[profile.lite]
+optimizer = false
+deny = "never"
+
+[doc]
+out = "docs/book"
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+multiline_func_header = "attributes_first"
+quote_style = "double"
+number_underscore = "thousands"
+sort_imports = true
+
+[lint]
+lint_on_build = true
