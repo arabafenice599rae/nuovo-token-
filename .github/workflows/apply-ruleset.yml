@@ -11,18 +11,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      administration: write
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
+      # The rulesets API needs repository administration scope, and GITHUB_TOKEN
+      # cannot be granted it: `administration` is not a workflow permission key.
+      # So this workflow runs on a token you provide, and says so plainly rather
+      # than failing later with a bare 403.
+      - name: Check the token
+        env:
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "::error::RULESET_TOKEN is not set. Create a fine-grained personal access token with 'Administration: read and write' on this repository, store it as the RULESET_TOKEN secret, and run this workflow again — or apply the ruleset by hand from Settings > Rules > Rulesets."
+            exit 1
+          fi
+
       - name: Create or update the ruleset
         env:
-          # GITHUB_TOKEN may not carry enough scope for the rulesets API. Add a
-          # fine-grained PAT with "Administration: read and write" on this
-          # repository as the RULESET_TOKEN secret and it is used instead.
-          GH_TOKEN: ${{ secrets.RULESET_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN }}
         run: |
           set -euo pipefail
           repo="${GITHUB_REPOSITORY}"
@@ -42,7 +51,7 @@ jobs:
 
       - name: Show what is live
         env:
-          GH_TOKEN: ${{ secrets.RULESET_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN }}
         run: |
           set -euo pipefail
           repo="${GITHUB_REPOSITORY}"
