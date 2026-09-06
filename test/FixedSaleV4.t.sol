@@ -360,4 +360,51 @@ contract FixedSaleV4Test is SaleFixture {
         assertApproxEqRel(inPool, (SALE_SUPPLY * 45) / 100, 0.01e18, "~45% of the sale supply in the pool");
         assertApproxEqRel(token.totalSupply(), (SALE_SUPPLY * 95) / 100, 0.01e18, "~95% of the sale supply left");
     }
+
+    // ---------------- figures the documentation quotes ----------------
+
+    /// @dev Every number docs/overview.md and the README state about the deploy
+    /// parameters, asserted here rather than computed by hand once.
+    function test_deployParametersMatchTheDocumentedFigures() public view {
+        assertEq(sale.saleSupply(), 52_631_578_947_368_421_052_631_579, "on sale");
+        assertEq(sale.liquidityReserve(), 47_368_421_052_631_578_947_368_421, "liquidity reserve");
+        // the whole point of that sale supply: the minted total lands on 100M exactly
+        assertEq(token.totalSupply(), 100_000_000e18, "total supply is exact, not approximate");
+        assertEq(sale.saleSupply() + sale.liquidityReserve(), 100_000_000e18, "sale + reserve");
+        assertEq(sale.softCapTokens(), 26_315_789_473_684_210_526_315_789, "soft cap");
+        assertEq(sale.pricePerToken(), 0.000_01 ether, "price");
+        assertEq(_costOf(SALE_SUPPLY), 526_315_789_473_684_210_526, "raise at full sale");
+        // the pool opening tick, which the README quotes
+        assertEq(sale.targetTick(), 115_135, "target tick");
+        assertEq(sale.targetSqrtPriceX96(), 25_054_144_837_504_793_118_641_380_156_960, "target sqrt price");
+    }
+
+    /// @dev Closing at the soft cap opens the market at the same price but with
+    /// half the depth, so any given trade moves the price about twice as far.
+    /// docs/overview.md states it; this keeps the statement true.
+    function test_softCapOpensWithHalfTheDepth() public {
+        vm.prank(alice);
+        sale.buy{value: _costOfAll()}();
+        sale.finalize();
+        uint128 fullDepth = sale.bootstrapLiquidity();
+
+        FixedSaleV4 half = new FixedSaleV4(
+            "Launch",
+            "LNCH",
+            SALE_SUPPLY,
+            PRICE_PER_TOKEN,
+            SALE_DURATION,
+            SOFT_CAP_BPS,
+            feeRecipient,
+            address(poolManager),
+            address(positionManager)
+        );
+        vm.deal(bob, 10_000 ether);
+        vm.prank(bob);
+        half.buy{value: (_costOf(SALE_SUPPLY / 2) + 1)}();
+        vm.warp(block.timestamp + SALE_DURATION);
+        half.finalize();
+
+        assertApproxEqRel(half.bootstrapLiquidity(), fullDepth / 2, 0.02e18, "half the liquidity");
+    }
 }
