@@ -1,0 +1,52 @@
+name: Apply ruleset
+
+# Manual only, on purpose: this workflow can change repository settings, so it
+# must never be reachable from an event an outsider can trigger.
+on:
+  workflow_dispatch:
+
+jobs:
+  apply:
+    name: Apply .github/rulesets/main.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      administration: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Create or update the ruleset
+        env:
+          # GITHUB_TOKEN may not carry enough scope for the rulesets API. Add a
+          # fine-grained PAT with "Administration: read and write" on this
+          # repository as the RULESET_TOKEN secret and it is used instead.
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+
+          id="$(gh api "repos/$repo/rulesets" --jq '.[] | select(.name=="main") | .id' 2>/dev/null || true)"
+          if [ -n "$id" ]; then
+            echo "Updating ruleset $id"
+            gh api -X PUT "repos/$repo/rulesets/$id" \
+              -H "Accept: application/vnd.github+json" \
+              --input .github/rulesets/main.json > /dev/null
+          else
+            echo "Creating the ruleset"
+            gh api -X POST "repos/$repo/rulesets" \
+              -H "Accept: application/vnd.github+json" \
+              --input .github/rulesets/main.json > /dev/null
+          fi
+
+      - name: Show what is live
+        env:
+          GH_TOKEN: ${{ secrets.RULESET_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="${GITHUB_REPOSITORY}"
+          id="$(gh api "repos/$repo/rulesets" --jq '.[] | select(.name=="main") | .id')"
+          gh api "repos/$repo/rulesets/$id" --jq '{name, enforcement, rules: [.rules[].type]}'
+          gh api "repos/$repo/rulesets/$id" \
+            --jq '.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context'

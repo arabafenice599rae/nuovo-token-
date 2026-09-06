@@ -125,8 +125,9 @@ run.
 Three jobs on every push and pull request — build & test, Slither, Aderyn
 (report uploaded as an artifact) — plus a nightly campaign at 03:00 UTC with the
 `ci` profile (20k fuzz runs). `main` is protected by the ruleset in
-[`.github/rulesets/main.json`](.github/rulesets/main.json); see
-[docs/branch-protection.md](docs/branch-protection.md) for how to apply it.
+[`.github/rulesets/main.json`](.github/rulesets/main.json) — apply it from
+**Actions → Apply ruleset → Run workflow**, or with `gh`; see
+[docs/branch-protection.md](docs/branch-protection.md).
 
 <details>
 <summary><strong>Repository layout</strong></summary>

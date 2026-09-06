@@ -24,7 +24,27 @@ stays blocked.
 ## Applying it
 
 The ruleset is not applied automatically: GitHub has no mechanism to read a
-ruleset from the repository. Apply it once with an authenticated `gh`:
+ruleset from the repository. There are two ways to push it live.
+
+### From the Actions tab
+
+`.github/workflows/apply-ruleset.yml` does it for you: **Actions → Apply ruleset
+→ Run workflow**. It creates the ruleset, or updates it in place if one named
+`main` already exists, then prints what is live — including the three required
+check names — so the run log is the receipt.
+
+The workflow is `workflow_dispatch` only: something that can change repository
+settings must never be reachable from an event an outsider can trigger.
+
+It runs with `administration: write` on the automatic `GITHUB_TOKEN`. If that
+token turns out not to carry enough scope for the rulesets API, the run fails
+with a 403 and the fix is a fine-grained PAT with **Administration: read and
+write** on this repository, stored as the `RULESET_TOKEN` secret — the workflow
+prefers it when present.
+
+### From a terminal
+
+With an authenticated `gh`:
 
 ```bash
 gh api -X POST repos/arabafenice599rae/nuovo-token-/rulesets \
