@@ -53,7 +53,9 @@ promesse. In concreto il lancio deve garantire che:
 Da questi discendono, senza altre scelte: `liquidityReserve` = 90% di
 `saleSupply` (la riserva destinata al pool), la supply totale del token
 (`saleSupply + liquidityReserve`, con un tetto di 1 miliardo) e il prezzo di
-inizializzazione del pool.
+inizializzazione del pool. Per questo lancio: **100.000.000 di token in vendita
+a 0,00001 ETH**, quindi 90.000.000 di riserva, 190.000.000 di supply totale e
+1.000 ETH di raccolta a vendita esaurita.
 
 ### Le fasi
 
@@ -84,15 +86,31 @@ calcolata sul raccolto effettivo: entra nel pool la quantita' di token che
 corrisponde all'ETH disponibile a quel prezzo, e **tutto il resto e' bruciato**.
 Non esiste uno scenario in cui token invenduti restino nelle mani di qualcuno.
 
-**Esempio.** `saleSupply` = 1.000.000 token, `pricePerToken` = 0,001 ETH,
-soft cap 50%. A vendita esaurita: 1.000 ETH raccolti, di cui 100 ETH di
-commissione e 900 ETH nel pool insieme a 900.000 token, al prezzo di 0,001 ETH.
-Supply totale 1.900.000 token, di cui 1.000.000 agli acquirenti e 900.000
-vincolati nella posizione di liquidita'. Se invece si vendesse il 50%: 500 ETH
-raccolti, 450 ETH nel pool con 450.000 token, e vengono bruciati sia i 450.000
-token di riserva avanzati sia i 500.000 rimasti invenduti — 950.000 token
-distrutti, supply finale 950.000. Entrambi gli scenari sono verificati da
-`test_soldOutLifecycle` e `test_softCapFinalizeBurnsUnsoldAndSurplus`.
+**I numeri di questo lancio.** I parametri sono fissati in
+`script/Deploy.s.sol` e sono gli stessi che la suite di test esercita:
+
+| Voce | Valore |
+| --- | --- |
+| Token in vendita | 100.000.000 |
+| Prezzo | 0,00001 ETH per token |
+| Riserva di liquidita' | 90.000.000 token |
+| Supply totale coniata | 190.000.000 token |
+| Soft cap | 50.000.000 token (50%) |
+| Durata della vendita | 7 giorni |
+| Raccolta a vendita esaurita | 1.000 ETH |
+| Prezzo di apertura del pool | 0,00001 ETH (tick 115.135) |
+
+A vendita esaurita: 1.000 ETH raccolti, di cui **100 ETH di commissione** e
+**900 ETH nel pool** insieme a **90.000.000 token**, allo stesso prezzo della
+vendita. I 100.000.000 di token venduti restano in escrow fino al `claim()`;
+circa 1 ETH (0,11% del budget di liquidita') non entra nella posizione per
+arrotondamento e viene spazzato a `feeRecipient` insieme alla commissione.
+
+Chiusura al soft cap (50%): 500 ETH raccolti, 450 ETH nel pool con 45.000.000
+token, e vengono bruciati sia i 45.000.000 di riserva avanzata sia i 50.000.000
+rimasti invenduti — 95.000.000 token distrutti, supply finale 95.000.000.
+Entrambi gli scenari sono verificati da `test_soldOutLifecycle` e
+`test_softCapFinalizeBurnsUnsoldAndSurplus`.
 
 **D. Consegna o rimborso.** A migrazione avvenuta ogni acquirente ritira i
 propri token con `claim()`. Se invece il lancio e' fallito, `refund()` restituisce

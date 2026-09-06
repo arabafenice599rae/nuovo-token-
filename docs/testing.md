@@ -98,9 +98,10 @@ Nessuna di queste e' un bug; sono comportamenti da conoscere.
 2. **`onERC721Received` non viene mai invocato.** Il PositionManager minta con
    `_mint`, non `safeMint`: l'hook e' codice difensivo mai raggiunto in
    produzione. E' comunque testato direttamente.
-3. **Il dust ETH dopo il mint e' piccolo ma non nullo.** Nel test sold-out (900
-   ETH di budget LP) restano ~0,09 ETH, spazzati a `feeRecipient` dentro
-   `finalize()`.
+3. **Il dust ETH dopo il mint non e' trascurabile.** Con i parametri del lancio
+   (900 ETH di budget LP) restano ~0,99 ETH, cioe' lo 0,11%: la posizione e'
+   vincolata dal lato token e l'ETH avanzato viene spazzato a `feeRecipient`
+   dentro `finalize()`.
 
 ## Cosa manca
 

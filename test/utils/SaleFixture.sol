@@ -15,8 +15,9 @@ import {WETH} from "solmate/src/tokens/WETH.sol";
 /// @dev Fixture condiviso: PoolManager e PositionManager reali (nessun mock),
 /// permit2 etchato dal bytecode precompilato come nei test di v4-periphery.
 abstract contract SaleFixture is Test, DeployPermit2 {
-    uint256 internal constant SALE_SUPPLY = 1_000_000e18;
-    uint256 internal constant PRICE_PER_TOKEN = 0.001 ether; // wei per 1e18 token
+    // Parametri del lancio (gli stessi di script/Deploy.s.sol)
+    uint256 internal constant SALE_SUPPLY = 100_000_000e18;
+    uint256 internal constant PRICE_PER_TOKEN = 0.000_01 ether; // wei per 1e18 token
     uint256 internal constant SALE_DURATION = 7 days;
     uint256 internal constant SOFT_CAP_BPS = 5000; // 50%
 

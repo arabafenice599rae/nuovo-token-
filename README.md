@@ -16,6 +16,10 @@ per sempre dal contratto.
   commissione inclusa
 - **nessun owner, nessun admin, nessuna pausa, nessun upgrade**
 
+Parametri del lancio: **100.000.000 token in vendita a 0,00001 ETH** (90.000.000
+di riserva di liquidita', 190.000.000 di supply totale, soft cap 50%, 1.000 ETH
+di raccolta a vendita esaurita) — fissati in `script/Deploy.s.sol`.
+
 Obiettivo, meccanica per fasi, parametri e limiti dichiarati:
 **[docs/overview.md](docs/overview.md)**.
 
@@ -59,6 +63,7 @@ make help        # elenco completo dei target
 
 ```
 src/            contratti (FixedSaleV4.sol)
+script/         script di deploy con i parametri del lancio
 test/           test di percorso, invarianti con handler, fixture condiviso
 lib/            dipendenze (submodule pinnati)
 tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
