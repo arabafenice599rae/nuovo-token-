@@ -1,29 +1,29 @@
-# Aderyn - configurazione dello scan (https://cyfrin.gitbook.io/cyfrin-docs)
-# Elenco completo dei detector: `aderyn registry`
+# Aderyn - scan configuration (https://cyfrin.gitbook.io/cyfrin-docs)
+# Full detector list: `aderyn registry`
 
-# NON modificare: al momento e' supportata solo la versione 1
+# DO NOT change: only version 1 is supported for now
 version = 1
 
-# Root del progetto: la cartella che contiene foundry.toml
+# Project root: the directory holding foundry.toml
 root = "."
 
-# Sorgenti da analizzare (i contratti di produzione)
+# Sources to analyse (the production contracts)
 src = "src/"
 
-# Fuori scope: dipendenze, test e script di deploy
+# Out of scope: dependencies, tests and deploy scripts
 exclude = ["lib/", "test/", "script/"]
 
 [detectors]
-# Per default vengono eseguiti tutti i detector. Le esclusioni qui sotto sono
-# triagiate una per una in docs/findings.md; le eccezioni puntuali si fanno
-# inline nel sorgente con `// aderyn-fp-next-line(<detector>)`.
+# All detectors run by default. The exclusions below are triaged one by one in
+# docs/findings.md; surgical exceptions go inline in the source with
+# `// aderyn-fp-next-line(<detector>)`.
 exclude = [
-    # Tutti i pagamenti sono pull verso msg.sender o verso feeRecipient, che e'
-    # immutabile e validato != address(0) nel costruttore.
+    # Every payment is a pull to msg.sender or to feeRecipient, which is
+    # immutable and checked != address(0) in the constructor.
     "eth-send-unchecked-address",
-    # Scritture di stato dopo call esterne: ogni entrypoint e' nonReentrant e
-    # `finalized` viene settato prima delle interazioni (CEI). ATTENZIONE:
-    # questa esclusione presuppone il guard su OGNI funzione esterna.
+    # State writes after external calls: every entrypoint is nonReentrant and
+    # `finalized` is set before the interactions (CEI). CAUTION: this exclusion
+    # assumes the guard stays on EVERY external function.
     "reentrancy-state-change",
 ]
 

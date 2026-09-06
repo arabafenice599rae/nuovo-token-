@@ -11,10 +11,10 @@ import {Test} from "forge-std/Test.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IPositionManager} from "v4-periphery/interfaces/IPositionManager.sol";
 
-/// @dev Smoke test delle dipendenze pinnate in lib/: verifica che i remapping di
-/// remappings.txt risolvano e che v4-core compili e sia deployabile con il
-/// profilo di compilazione del progetto (solc 0.8.26, cancun).
-/// PoolManager eredita da solmate `Owned`, quindi copre anche lib/v4-core/lib/solmate.
+/// @dev Smoke test for the pinned dependencies in lib/: checks that the
+/// remappings in remappings.txt resolve and that v4-core compiles and deploys
+/// under the project's compiler profile (solc 0.8.26, cancun).
+/// PoolManager inherits solmate's `Owned`, so this covers lib/v4-core/lib/solmate too.
 contract DependenciesTest is Test {
     uint24 internal constant FEE = 3000;
     int24 internal constant TICK_SPACING = 60;
@@ -23,8 +23,8 @@ contract DependenciesTest is Test {
         IPoolManager manager = IPoolManager(address(new PoolManager(address(this))));
 
         assertTrue(address(manager) != address(0));
-        // Il limite EIP-170 e' verificato da `forge build --sizes` in CI: qui no,
-        // perche' `forge coverage` compila senza optimizer e la misura cambia.
+        // The EIP-170 limit is checked by `forge build --sizes` in CI, not here:
+        // `forge coverage` compiles without the optimizer and the size changes.
         assertGt(address(manager).code.length, 0);
     }
 

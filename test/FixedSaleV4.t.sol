@@ -15,8 +15,8 @@ import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {ModifyLiquidityParams, SwapParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 
-/// @dev Test di percorso: lifecycle, refund e arrotondamento della vendita.
-/// Non sostituisce la suite di integrazione REV7 (che non e' in questo repo).
+/// @dev Path tests: lifecycle, refunds and sale rounding.
+/// Not a replacement for the REV7 integration suite (which is not in this repo).
 contract FixedSaleV4Test is SaleFixture {
     using StateLibrary for IPoolManager;
 
@@ -38,34 +38,34 @@ contract FixedSaleV4Test is SaleFixture {
         sale.buy{value: _costOfAll()}();
 
         assertEq(sale.totalSold(), SALE_SUPPLY, "sold out");
-        assertEq(sale.feesAccrued(), cost / 10, "fee 10%");
-        assertEq(sale.ethForLiquidity(), cost - cost / 10, "eth per LP");
+        assertEq(sale.feesAccrued(), cost / 10, "10% fee");
+        assertEq(sale.ethForLiquidity(), cost - cost / 10, "eth earmarked for the LP");
 
         sale.finalize();
 
         assertTrue(sale.finalized(), "finalized");
-        assertGt(sale.bootstrapTokenId(), 0, "posizione mintata");
-        assertGt(sale.bootstrapLiquidity(), 0, "liquidita' > 0");
-        // I12: dopo il burn restano solo i token in escrow per i compratori.
+        assertGt(sale.bootstrapTokenId(), 0, "position minted");
+        assertGt(sale.bootstrapLiquidity(), 0, "liquidity > 0");
+        // I12: after the burn only the buyers' escrowed tokens are left.
         assertEq(token.balanceOf(address(sale)), SALE_SUPPLY, "escrow == totalSold");
 
         vm.prank(alice);
         sale.claim();
         assertEq(token.balanceOf(alice), SALE_SUPPLY, "claim");
-        assertEq(sale.purchased(alice), 0, "escrow azzerato");
+        assertEq(sale.purchased(alice), 0, "escrow cleared");
 
-        // Il dust ETH avanzato dal mint e' gia' stato spazzato a feeRecipient
-        // dentro finalize(), quindi si misura il delta della withdraw.
+        // The ETH dust left by the mint was already swept to feeRecipient inside
+        // finalize(), so measure the delta of the withdrawal itself.
         uint256 fees = sale.feesAccrued();
         uint256 recipientBefore = feeRecipient.balance;
         sale.withdrawFees();
-        assertEq(feeRecipient.balance - recipientBefore, fees, "fee al recipient");
-        assertEq(sale.feesAccrued(), 0, "fee azzerate");
-        assertEq(address(sale).balance, 0, "nessun residuo ETH");
+        assertEq(feeRecipient.balance - recipientBefore, fees, "fee to the recipient");
+        assertEq(sale.feesAccrued(), 0, "fees cleared");
+        assertEq(address(sale).balance, 0, "no ETH left behind");
     }
 
     function test_refundBelowSoftCap() public {
-        uint256 tokens = SALE_SUPPLY / 10; // sotto il soft cap del 50%
+        uint256 tokens = SALE_SUPPLY / 10; // below the 50% soft cap
         uint256 cost = _costOf(tokens);
 
         vm.prank(alice);
@@ -79,15 +79,15 @@ contract FixedSaleV4Test is SaleFixture {
         vm.prank(alice);
         sale.refund();
 
-        assertEq(alice.balance - before, cost, "rimborso integrale, fee inclusa");
-        assertEq(sale.totalSold(), 0, "stato globale ripristinato");
-        assertEq(sale.feesAccrued(), 0, "fee stornata");
-        assertEq(sale.ethForLiquidity(), 0, "budget LP stornato");
+        assertEq(alice.balance - before, cost, "full refund, fee included");
+        assertEq(sale.totalSold(), 0, "global state restored");
+        assertEq(sale.feesAccrued(), 0, "fee reversed");
+        assertEq(sale.ethForLiquidity(), 0, "LP budget reversed");
     }
 
-    /// @dev I11: oltre la grace il refund e' possibile anche sopra il soft cap.
+    /// @dev I11: past the grace window, refunds work even above the soft cap.
     function test_refundAfterGraceAboveSoftCap() public {
-        uint256 tokens = (SALE_SUPPLY * 6) / 10; // sopra il soft cap
+        uint256 tokens = (SALE_SUPPLY * 6) / 10; // above the soft cap
         uint256 cost = _costOf(tokens);
 
         vm.prank(alice);
@@ -102,7 +102,7 @@ contract FixedSaleV4Test is SaleFixture {
         uint256 before = alice.balance;
         vm.prank(alice);
         sale.refund();
-        assertEq(alice.balance - before, cost, "rimborso post-grace");
+        assertEq(alice.balance - before, cost, "refund after the grace window");
     }
 
     function test_buyRefundsSurplusOnSoldOut() public {
@@ -112,8 +112,8 @@ contract FixedSaleV4Test is SaleFixture {
         vm.prank(alice);
         sale.buy{value: cost + 5 ether}();
 
-        assertEq(before - alice.balance, cost, "surplus restituito");
-        assertEq(sale.totalSold(), SALE_SUPPLY, "clamp alla supply");
+        assertEq(before - alice.balance, cost, "surplus returned");
+        assertEq(sale.totalSold(), SALE_SUPPLY, "clamped to the supply");
     }
 
     function testFuzz_buyAccounting(uint256 value) public {
@@ -123,8 +123,8 @@ contract FixedSaleV4Test is SaleFixture {
         sale.buy{value: value}();
 
         uint256 spent = sale.contributed(alice);
-        assertLe(spent, value, "speso <= inviato");
-        assertEq(sale.feePaid(alice), (spent * sale.FEE_BPS()) / sale.BPS(), "fee per-utente");
+        assertLe(spent, value, "spent <= sent");
+        assertEq(sale.feePaid(alice), (spent * sale.FEE_BPS()) / sale.BPS(), "per-user fee");
         // I5
         assertEq(sale.feesAccrued() + sale.ethForLiquidity(), spent, "I5");
         // I2 / I3
@@ -134,9 +134,9 @@ contract FixedSaleV4Test is SaleFixture {
         assertGe(address(sale).balance, sale.feesAccrued() + sale.ethForLiquidity(), "I1");
     }
 
-    /// @dev H-1 / percorso [CUSTOM]: su un pool ancora senza liquidita' chiunque
-    /// puo' spostare il prezzo gratis con uno swap limitato. finalize() deve
-    /// normalizzare (unlockCallback) e mintare comunque al prezzo di listing.
+    /// @dev H-1 / the [CUSTOM] path: on a pool that still has no liquidity anyone
+    /// can move the price for free with a limited swap. finalize() has to
+    /// normalise it (unlockCallback) and still mint at the listing price.
     function test_finalizeNormalizesAfterFreeMove() public {
         vm.prank(alice);
         sale.buy{value: _costOfAll()}();
@@ -149,7 +149,7 @@ contract FixedSaleV4Test is SaleFixture {
             hooks: IHooks(address(0))
         });
 
-        // free move: pool vuoto, lo swap sposta lo sqrtPrice fino al limite a costo zero
+        // free move: empty pool, the swap walks sqrtPrice to the limit at no cost
         PoolSwapTest router = new PoolSwapTest(IPoolManager(address(poolManager)));
         uint160 movedTo = sale.targetSqrtPriceX96() / 2;
         vm.prank(bob);
@@ -161,19 +161,19 @@ contract FixedSaleV4Test is SaleFixture {
         );
 
         (uint160 movedPrice,,,) = IPoolManager(address(poolManager)).getSlot0(sale.poolId());
-        assertEq(movedPrice, movedTo, "prezzo spostato prima del finalize");
+        assertEq(movedPrice, movedTo, "price moved before finalize");
 
         sale.finalize();
 
-        // I7 + I8: il mint e' avvenuto esattamente al target
+        // I7 + I8: the mint happened exactly at the target
         (uint160 finalPrice, int24 finalTick,,) = IPoolManager(address(poolManager)).getSlot0(sale.poolId());
-        assertEq(finalPrice, sale.targetSqrtPriceX96(), "I7: prezzo riportato al target");
-        assertEq(finalTick, sale.targetTick(), "I8: tick al target");
-        assertGt(sale.bootstrapLiquidity(), 0, "posizione mintata dopo la normalizzazione");
+        assertEq(finalPrice, sale.targetSqrtPriceX96(), "I7: price brought back to target");
+        assertEq(finalTick, sale.targetTick(), "I8: tick at target");
+        assertGt(sale.bootstrapLiquidity(), 0, "position minted after normalisation");
     }
 
-    /// @dev Fase E / T6: dopo il finalize le swap fee sono raccoglibili in modo
-    /// permissionless verso feeRecipient, senza toccare il principal (I9).
+    /// @dev Phase E / T6: after the migration the swap fees are collectable
+    /// permissionlessly to feeRecipient, without touching the principal (I9).
     function test_collectPoolFeesLeavesPrincipalUntouched() public {
         vm.prank(alice);
         sale.buy{value: _costOfAll()}();
@@ -190,7 +190,7 @@ contract FixedSaleV4Test is SaleFixture {
             hooks: IHooks(address(0))
         });
 
-        // Uno swap reale contro la posizione appena creata: genera fee.
+        // A real swap against the freshly minted position: it generates fees.
         PoolSwapTest router = new PoolSwapTest(IPoolManager(address(poolManager)));
         vm.prank(bob);
         router.swap{value: 10 ether}(
@@ -203,17 +203,17 @@ contract FixedSaleV4Test is SaleFixture {
         uint256 feeEthBefore = feeRecipient.balance;
         sale.collectPoolFees();
 
-        assertGt(feeRecipient.balance - feeEthBefore, 0, "swap fee in ETH raccolte");
-        assertEq(sale.bootstrapLiquidity(), liquidityBefore, "I9: principal invariato");
-        assertEq(sale.bootstrapTokenId(), tokenIdBefore, "I9: stessa posizione");
-        assertEq(positionManager.ownerOf(tokenIdBefore), address(sale), "I9: NFT non ceduto");
+        assertGt(feeRecipient.balance - feeEthBefore, 0, "ETH swap fees collected");
+        assertEq(sale.bootstrapLiquidity(), liquidityBefore, "I9: principal untouched");
+        assertEq(sale.bootstrapTokenId(), tokenIdBefore, "I9: same position");
+        assertEq(positionManager.ownerOf(tokenIdBefore), address(sale), "I9: NFT not transferred away");
     }
 
-    /// @dev T3: liquidita' ostile. L'attaccante sposta il prezzo sotto il target
-    /// (free move) e piazza liquidita' solo-ETH sopra il prezzo corrente. La
-    /// normalizzazione di finalize() deve attraversarla davvero — qui i delta
-    /// dello swap sono diversi da zero su entrambe le currency — e finire
-    /// comunque esattamente al target.
+    /// @dev T3: hostile liquidity. The attacker moves the price below the target
+    /// (free move) and places ETH-only liquidity above the current price. The
+    /// normalisation inside finalize() has to actually cross it — here the swap
+    /// deltas are non-zero on both currencies — and still land exactly on the
+    /// target.
     function test_finalizeCrossesHostileLiquidity() public {
         vm.prank(alice);
         sale.buy{value: _costOfAll()}();
@@ -229,7 +229,7 @@ contract FixedSaleV4Test is SaleFixture {
         PoolSwapTest swapRouter = new PoolSwapTest(IPoolManager(address(poolManager)));
         PoolModifyLiquidityTest lpRouter = new PoolModifyLiquidityTest(IPoolManager(address(poolManager)));
 
-        // 1) free move: prezzo sotto il target
+        // 1) free move: price below the target
         vm.prank(bob);
         swapRouter.swap(
             key,
@@ -238,9 +238,9 @@ contract FixedSaleV4Test is SaleFixture {
             ""
         );
         (, int24 movedTick,,) = IPoolManager(address(poolManager)).getSlot0(sale.poolId());
-        assertLt(movedTick, sale.targetTick(), "prezzo spostato sotto il target");
+        assertLt(movedTick, sale.targetTick(), "price moved below the target");
 
-        // 2) posizione solo-ETH sopra il prezzo corrente, che copre il target
+        // 2) ETH-only position above the current price, spanning the target
         int24 spacing = sale.TICK_SPACING();
         int24 lower = ((movedTick / spacing) + 2) * spacing;
         int24 upper = ((sale.targetTick() / spacing) + 20) * spacing;
@@ -253,16 +253,16 @@ contract FixedSaleV4Test is SaleFixture {
         sale.finalize();
 
         (uint160 finalPrice, int24 finalTick,,) = IPoolManager(address(poolManager)).getSlot0(sale.poolId());
-        assertEq(finalPrice, sale.targetSqrtPriceX96(), "I7: prezzo al target dopo la traversata");
-        assertEq(finalTick, sale.targetTick(), "I8: tick al target");
-        assertGt(sale.bootstrapLiquidity(), 0, "posizione mintata");
-        // la normalizzazione ha davvero venduto token nel pool (delta != 0)
-        assertLt(token.balanceOf(address(sale)), saleTokensBefore, "token usciti verso il pool");
-        // I12 resta valida dopo la traversata
+        assertEq(finalPrice, sale.targetSqrtPriceX96(), "I7: price at target after the crossing");
+        assertEq(finalTick, sale.targetTick(), "I8: tick at target");
+        assertGt(sale.bootstrapLiquidity(), 0, "position minted");
+        // the normalisation really did sell tokens into the pool (delta != 0)
+        assertLt(token.balanceOf(address(sale)), saleTokensBefore, "tokens went out to the pool");
+        // I12 still holds after the crossing
         assertEq(token.balanceOf(address(sale)), sale.totalSold(), "escrow == totalSold");
     }
 
-    // ---------------- guardie del costruttore e degli ingressi ----------------
+    // ---------------- constructor and entry guards ----------------
 
     function test_constructorRejectsZeroAddress() public {
         vm.expectRevert(FixedSaleV4.ZeroAddress.selector);
@@ -279,7 +279,7 @@ contract FixedSaleV4Test is SaleFixture {
         );
     }
 
-    /// @dev I10: un PositionManager legato a un altro PoolManager e' rifiutato.
+    /// @dev I10: a PositionManager bound to a different PoolManager is rejected.
     function test_constructorRejectsManagerMismatch() public {
         PoolManager other = new PoolManager(address(this));
         vm.expectRevert(FixedSaleV4.ManagerMismatch.selector);
@@ -300,11 +300,11 @@ contract FixedSaleV4Test is SaleFixture {
         vm.deal(bob, 1 ether);
         vm.prank(bob);
         (bool ok,) = address(sale).call{value: 1 ether}("");
-        assertFalse(ok, "ETH diretto rifiutato");
+        assertFalse(ok, "direct ETH rejected");
     }
 
-    /// @dev L'hook ERC721 accetta solo dal PositionManager. In pratica non viene
-    /// mai invocato: POSM minta con `_mint`, non `safeMint`.
+    /// @dev The ERC721 hook only accepts calls from the PositionManager. In
+    /// practice it is never invoked: POSM mints with `_mint`, not `safeMint`.
     function test_onERC721ReceivedOnlyFromPosm() public {
         vm.prank(address(positionManager));
         assertEq(sale.onERC721Received(address(0), address(0), 1, ""), sale.onERC721Received.selector);
@@ -314,9 +314,9 @@ contract FixedSaleV4Test is SaleFixture {
         sale.onERC721Received(address(0), address(0), 1, "");
     }
 
-    /// @dev I13: costo di saturazione dei bound. Con la liquidita' massima
-    /// piazzabile in un tick, spingere il prezzo oltre TICK_UPPER costa ordini
-    /// di grandezza piu' del vecchio full-range, che era attaccabile con dust.
+    /// @dev I13: cost of saturating the bounds. With the maximum liquidity
+    /// placeable in one tick, pushing the price past TICK_UPPER costs orders of
+    /// magnitude more than the old full range, which was attackable with dust.
     function test_I13_tickSaturation_costs() public view {
         uint128 maxL = uint128(type(uint128).max / 29_576);
         int24 sp = 60;
@@ -336,14 +336,14 @@ contract FixedSaleV4Test is SaleFixture {
             maxL,
             true
         );
-        assertLt(costOld, 1e13); // il vecchio full-range era attaccabile con dust
+        assertLt(costOld, 1e13); // the old full range was attackable with dust
         assertGt(costNew, 1e25); // TICK_UPPER: >10M ETH
         assertGt(costLowTok, sale.MAX_TOTAL_SUPPLY() * 10); // TICK_LOWER: >10x supply
     }
 
-    /// @dev Scenario soft cap dell'esempio in docs/overview.md: venduto il 50%,
-    /// nel pool entra la liquidita' che l'ETH raccolto sostiene al prezzo di
-    /// listing e tutto il resto — riserva avanzata e invenduto — viene bruciato.
+    /// @dev The soft-cap scenario from docs/overview.md: with 50% sold, the pool
+    /// receives the liquidity the raised ETH supports at the listing price and
+    /// everything else — leftover reserve and unsold supply — is burned.
     function test_softCapFinalizeBurnsUnsoldAndSurplus() public {
         vm.prank(alice);
         sale.buy{value: _costOfAtLeast(SALE_SUPPLY / 2)}();
@@ -352,12 +352,12 @@ contract FixedSaleV4Test is SaleFixture {
         vm.warp(block.timestamp + SALE_DURATION);
         sale.finalize();
 
-        // escrow: esattamente i token dovuti agli acquirenti
-        assertEq(token.balanceOf(address(sale)), sold, "escrow == venduto");
-        // supply finale = venduto + token effettivamente nel pool (~450k)
+        // escrow: exactly the tokens owed to buyers
+        assertEq(token.balanceOf(address(sale)), sold, "escrow == sold");
+        // final supply = sold + the tokens actually in the pool
         uint256 inPool = token.balanceOf(address(poolManager));
         assertEq(token.totalSupply(), sold + inPool, "supply == escrow + LP");
-        assertApproxEqRel(inPool, SALE_SUPPLY * 45 / 100, 0.01e18, "~450k token nel pool");
-        assertApproxEqRel(token.totalSupply(), SALE_SUPPLY * 95 / 100, 0.01e18, "~950k supply finale");
+        assertApproxEqRel(inPool, (SALE_SUPPLY * 45) / 100, 0.01e18, "~45% of the sale supply in the pool");
+        assertApproxEqRel(token.totalSupply(), (SALE_SUPPLY * 95) / 100, 0.01e18, "~95% of the sale supply left");
     }
 }

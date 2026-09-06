@@ -6,34 +6,34 @@ import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/console2.sol";
 
-/// @notice Deploy di FixedSaleV4 con i parametri del lancio.
+/// @notice Deploys FixedSaleV4 with the launch parameters.
 ///
-/// PoolManager e PositionManager NON sono hardcoded: vanno passati da env, presi
-/// dalla lista ufficiale dei deployment Uniswap v4 per la chain di destinazione
-/// (https://docs.uniswap.org/contracts/v4/deployments). Il costruttore verifica
-/// comunque che il PositionManager sia legato a quel PoolManager (I10).
+/// PoolManager and PositionManager are NOT hardcoded: pass them through the
+/// environment, taken from Uniswap's official v4 deployment list for the target
+/// chain (https://docs.uniswap.org/contracts/v4/deployments). The constructor
+/// checks anyway that the PositionManager belongs to that PoolManager (I10).
 ///
 ///   POOL_MANAGER=0x... POSITION_MANAGER=0x... FEE_RECIPIENT=0x... \
 ///   forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 contract DeployScript is Script {
-    // ---- parametri del lancio ----
+    // ---- launch parameters ----
     string internal constant NAME = "Launch Token";
     string internal constant SYMBOL = "LNCH";
 
-    /// @dev Token in vendita. La supply totale coniata e' SALE_SUPPLY + 90%
-    ///      (riserva di liquidita'), cioe' 19/10 di SALE_SUPPLY: per una supply
-    ///      totale di esattamente 100.000.000 token servono 100M * 10/19 in
-    ///      vendita e 100M * 9/19 di riserva. E' l'unico valore intero che
-    ///      chiude a 100M esatti con lo split 90/10 del contratto.
+    /// @dev Tokens on sale. The minted supply is SALE_SUPPLY + 90% (the
+    ///      liquidity reserve), i.e. 19/10 of SALE_SUPPLY: a total supply of
+    ///      exactly 100,000,000 tokens means selling 100M * 10/19 and keeping
+    ///      100M * 9/19 in reserve. This is the only integer that closes at
+    ///      exactly 100M under the contract's 90/10 integer split.
     ///      52.631.578,947368421052631579 + 47.368.421,052631578947368421 = 100M
     uint256 internal constant SALE_SUPPLY = 52_631_578_947_368_421_052_631_579;
 
-    /// @dev Prezzo fisso: wei per 1e18 unita' di token. 0,00001 ETH per token
-    ///      => 1.000 ETH raccolti a vendita esaurita.
+    /// @dev Fixed price: wei per 1e18 token units. 0.00001 ETH per token
+    ///      => 526.32 ETH raised at full sale.
     uint256 internal constant PRICE_PER_TOKEN = 0.000_01 ether;
 
     uint256 internal constant SALE_DURATION = 7 days;
-    uint256 internal constant SOFT_CAP_BPS = 5000; // 50% di SALE_SUPPLY
+    uint256 internal constant SOFT_CAP_BPS = 5000; // 50% of SALE_SUPPLY
 
     function run() external returns (FixedSaleV4 sale) {
         address poolManager = vm.envAddress("POOL_MANAGER");

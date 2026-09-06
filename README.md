@@ -1,99 +1,120 @@
-# nuovo-token-
+# FixedSaleV4
 
-Lancio di un token ERC-20 in cui **la creazione del mercato e' parte del
-contratto, non una promessa del team**: si vende a prezzo fisso e, appena la
-raccolta chiude con successo, ricavato e riserva finiscono automaticamente in un
-pool Uniswap v4 allo stesso prezzo, con la posizione di liquidita' trattenuta
-per sempre dal contratto.
+**A token launch where the market is created by the contract, not promised by the team.**
 
-- prezzo di vendita e prezzo di apertura del mercato **coincidono**, e la
-  migrazione reverte se il pool non e' esattamente al prezzo di listing
-- la liquidita' **non e' ritirabile**: nessuna funzione trasferisce l'NFT della
-  posizione ne' rimuove liquidita'
-- **nessuna allocazione al team e nessun mint**: la supply e' solo vendita +
-  liquidita', e cio' che avanza viene bruciato
-- se il lancio fallisce, ogni acquirente **rientra del 100% dell'ETH versato**,
-  commissione inclusa
-- **nessun owner, nessun admin, nessuna pausa, nessun upgrade**
+Tokens are sold at a fixed price and, the moment the sale closes successfully,
+the proceeds and the liquidity reserve are moved into a Uniswap v4 pool at that
+same price — with the liquidity position held by the contract forever.
 
-Parametri del lancio: **supply totale 100.000.000 token esatti** a **0,00001 ETH**
-— 52.631.578,95 in vendita e 47.368.421,05 di riserva di liquidita' (la riserva
-e' il 90% del venduto, quindi la supply e' 19/10 del venduto), soft cap 50%,
-526,32 ETH di raccolta a vendita esaurita. Fissati in `script/Deploy.s.sol`.
+- Sale price and market opening price **are the same number**, and the migration
+  reverts if the pool is not exactly at the listing price
+- Liquidity **cannot be pulled**: no function transfers the position NFT or
+  decreases liquidity
+- **No team allocation, no mint function**: supply is sale + liquidity, and
+  whatever is left over is burned
+- If the launch fails, every buyer gets **100% of their ETH back**, fee included
+- **No owner, no admin, no pause, no upgrade**
 
-Obiettivo, meccanica per fasi, parametri e limiti dichiarati:
+Objective, phase-by-phase mechanics, figures and stated limits:
 **[docs/overview.md](docs/overview.md)**.
 
-Progetto Foundry con analisi statica (Slither + Aderyn) e suite di invarianti
-integrate in CI.
+## Launch parameters
 
-## Requisiti
+| | |
+| --- | --- |
+| Total supply | **100,000,000** tokens (exact) |
+| On sale | 52,631,578.947368421052631579 |
+| Liquidity reserve | 47,368,421.052631578947368421 |
+| Price | 0.00001 ETH per token |
+| Soft cap | 26,315,789.47 (50%) · 7 days |
+| Raised at full sale | 526.32 ETH → 52.63 fee + 473.68 into the pool |
+| Pool opening price | 0.00001 ETH (tick 115,135) |
 
-- [Foundry](https://getfoundry.sh) 1.8.1 (solc 0.8.26, scaricata da `forge`)
-- Python 3 con [Slither](https://github.com/crytic/slither) 0.11.6 e crytic-compile
-- [Aderyn](https://github.com/Cyfrin/aderyn) 0.6.8
+The reserve is 90% of what is sold, so the minted supply is 19/10 of the sale
+supply — an exact 100,000,000 total means selling 100M × 10/19. Parameters live
+in [`script/Deploy.s.sol`](script/Deploy.s.sol); PoolManager and PositionManager
+addresses are passed through the environment, never hardcoded.
 
-Comandi di installazione in [docs/static-analysis.md](docs/static-analysis.md).
-
-## Dipendenze
-
-Uniswap v4 (core + periphery), Permit2, OpenZeppelin, forge-std e solmate sono
-submodule in `lib/`, pinnati a commit esatti: vedi
-[docs/dependencies.md](docs/dependencies.md).
-
-```bash
-make install     # inizializza i submodule ai commit pinnati
-make deps-check  # verifica i pin
-```
-
-## Uso
+## Quick start
 
 ```bash
-make install     # dipendenze pinnate in lib/
-make build       # forge build --sizes
-make test        # forge test -vvv
-make invariant   # solo le invarianti (I1-I5, I9, I12)
-make coverage    # copertura
-make analyze     # build + slither + aderyn
-make test-nightly # fuzzing esteso (profilo ci, 20k run)
-make ci          # riproduce in locale la pipeline di CI
-make help        # elenco completo dei target
+make install       # pinned dependencies (git submodules)
+make build         # forge build --sizes
+make test          # 20 tests: paths, fuzz, invariants
+make analyze       # build + Slither + Aderyn
+make ci            # the full pull-request pipeline, locally
+make help          # every target
 ```
 
-## Struttura
+Requires [Foundry](https://getfoundry.sh) 1.8.1 (solc 0.8.26, fetched by
+`forge`), [Slither](https://github.com/crytic/slither) 0.11.6 and
+[Aderyn](https://github.com/Cyfrin/aderyn) 0.6.8 — install commands in
+[docs/static-analysis.md](docs/static-analysis.md), versions checked with
+`make versions`.
 
-```
-src/            contratti (FixedSaleV4.sol)
-script/         script di deploy con i parametri del lancio
-test/           test di percorso, invarianti con handler, fixture condiviso
-lib/            dipendenze (submodule pinnati)
-tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
-docs/           overview del lancio, dipendenze, static analysis, findings, test
-foundry.toml    profili di compilazione (default / ci / lite)
-remappings.txt  remapping degli import verso lib/
-slither.config.json, aderyn.toml   configurazione dell'analisi statica
-```
+## Testing
 
-## Contratti
+20 tests, all green, against **real** Uniswap v4 contracts — a real PoolManager
+and PositionManager, no mocks, with permit2 etched from its precompiled
+bytecode.
 
-- `src/FixedSaleV4.sol` — `LaunchToken` (ERC-20 + burn, nessuna tax, nessun mint
-  post-deploy) e `FixedSaleV4` (vendita, migrazione, claim/refund, fee).
+| | |
+| --- | --- |
+| Path tests | 14 — sold-out lifecycle, refunds, price normalisation after a free move, crossing hostile liquidity, fee collection, entry guards, tick saturation cost |
+| Invariants | I1–I5, I9, I12 over 1,000 runs × depth 150 = **150,000 calls** |
+| Coverage of `src/FixedSaleV4.sol` | 97.50% lines · 100% functions · 63.04% branches |
 
-Il triage completo dei finding di analisi statica, con le soppressioni attive e
-i loro motivi, e' in [docs/findings.md](docs/findings.md); la suite di test e la
-copertura delle invarianti I1-I13 sono descritte in
-[docs/testing.md](docs/testing.md).
+Every invariant I1–I13 declared in the contract header has a check behind it.
+The invariant → test map is in [docs/testing.md](docs/testing.md).
 
-Il contratto viene compilato **con via-ir** (`foundry.toml`), per parita' con il
-bytecode verificato; il profilo `lite` disattiva via-ir per le iterazioni veloci.
+## Static analysis
+
+| Gate | State |
+| --- | --- |
+| Slither (`fail_on: medium`) | 0 findings at medium or above |
+| Aderyn (`tools/aderyn-gate.sh`) | 0 High findings |
+| forge lint | informational, does not gate the build |
+
+Every blocking finding is triaged one by one in
+[docs/findings.md](docs/findings.md), with the reason and the exact place it is
+suppressed. The remaining low/informational findings stay visible on every run.
 
 ## CI
 
-`.github/workflows/ci.yml` esegue tre job su ogni push e pull request:
+`.github/workflows/ci.yml` runs three jobs on every push and pull request —
+build & test, Slither, Aderyn (report uploaded as an artifact).
+`.github/workflows/nightly.yml` runs the heavy campaign at 03:00 UTC with the
+`ci` profile (20k fuzz runs). `main` is protected by the ruleset in
+[`.github/rulesets/main.json`](.github/rulesets/main.json) — see
+[docs/branch-protection.md](docs/branch-protection.md).
 
-- **Build & test** — `forge fmt --check`, `forge build --sizes`, `forge test` (profilo default: 2k run di fuzzing, invarianti 1000 x depth 150)
-- **Slither** — fallisce dai finding di impatto medium in su
-- **Aderyn** — fallisce sui finding High, report pubblicato come artifact
+## Layout
 
-`.github/workflows/nightly.yml` gira ogni notte alle 03:00 UTC (o a mano da
-Actions) con il profilo `ci`: 20.000 run di fuzzing. In locale: `make test-nightly`.
+```
+src/            FixedSaleV4.sol — LaunchToken and FixedSaleV4
+test/           path tests, invariant handler, shared fixture
+script/         deploy script carrying the launch parameters
+lib/            dependencies, pinned as submodules
+tools/          CI gates (aderyn-gate.sh, check-deps.sh)
+docs/           overview, dependencies, static analysis, findings, testing
+foundry.toml    compiler profiles (default / ci / lite)
+remappings.txt  import remappings into lib/
+```
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [overview.md](docs/overview.md) | what the launch guarantees, how, and what it does not promise |
+| [dependencies.md](docs/dependencies.md) | pinned commits, remapping rationale, upgrade procedure |
+| [testing.md](docs/testing.md) | suite, invariant coverage, behaviours the tests surfaced |
+| [findings.md](docs/findings.md) | static-analysis triage and active suppressions |
+| [static-analysis.md](docs/static-analysis.md) | tool setup and triage workflow |
+| [branch-protection.md](docs/branch-protection.md) | the `main` ruleset and how to apply it |
+
+## Security
+
+This code has **not been audited**. The Uniswap v4 integration is custom glue
+code and needs independent review before it handles real funds. The static
+analysis and the test suite in this repository raise the floor; they are not a
+substitute for a review.
