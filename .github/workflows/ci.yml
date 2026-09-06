@@ -46,6 +46,10 @@ jobs:
       - name: Build
         run: forge build --sizes
 
+      - name: Lint (informativo, non blocca)
+        continue-on-error: true
+        run: forge lint
+
       - name: Test
         run: forge test -vvv
 

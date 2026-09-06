@@ -1,7 +1,10 @@
 # nuovo-token-
 
-Progetto Foundry con analisi statica (Slither + Aderyn) configurata e integrata
-in CI.
+`FixedSaleV4`: vendita a prezzo fisso di un ERC-20 con migrazione permissionless
+della liquidita' su Uniswap v4 (posizione bounded mintata via PositionManager,
+raccolta perpetua delle swap fee). Nessun owner, nessun admin, nessun upgrade.
+
+Progetto Foundry con analisi statica (Slither + Aderyn) integrata in CI.
 
 ## Requisiti
 
@@ -37,19 +40,26 @@ make help        # elenco completo dei target
 ## Struttura
 
 ```
-src/            contratti
+src/            contratti (FixedSaleV4.sol)
 test/           test Foundry
-script/         script di deploy
 lib/            dipendenze (submodule pinnati)
 tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
-docs/           documentazione (dipendenze, static analysis)
+docs/           documentazione (dipendenze, static analysis, findings)
 foundry.toml    profili di compilazione (default / ci / lite)
 remappings.txt  remapping degli import verso lib/
 slither.config.json, aderyn.toml   configurazione dell'analisi statica
 ```
 
-`src/Counter.sol` e' lo scaffold generato da `forge init`: e' un segnaposto che
-serve solo a tenere verde la pipeline finche' non arriva il contratto del token.
+## Contratti
+
+- `src/FixedSaleV4.sol` — `LaunchToken` (ERC-20 + burn, nessuna tax, nessun mint
+  post-deploy) e `FixedSaleV4` (vendita, migrazione, claim/refund, fee).
+
+Il triage completo dei finding di analisi statica, con le soppressioni attive e
+i loro motivi, e' in [docs/findings.md](docs/findings.md).
+
+Il contratto viene compilato **con via-ir** (`foundry.toml`), per parita' con il
+bytecode verificato; il profilo `lite` disattiva via-ir per le iterazioni veloci.
 
 ## CI
 

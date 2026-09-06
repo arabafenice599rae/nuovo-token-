@@ -42,7 +42,9 @@ Verifica: `make versions`.
 - `ast = true`, `build_info = true`: Slither e Aderyn leggono gli artefatti
   prodotti da `forge build`; senza AST e build-info non riescono a mappare i
   finding sul sorgente.
-- `deny = "warnings"`: i warning di compilatore e linter fanno fallire la build.
+- `deny = "warnings"`: i warning del compilatore fanno fallire la build.
+  `forge lint`, invece, non blocca (`lint_on_build = false`): gira come step
+  informativo in CI e con `make lint`. Motivo in docs/findings.md.
   Il profilo `lite` (`FOUNDRY_PROFILE=lite forge build`) li tollera per le
   iterazioni veloci in locale, ma non va usato per l'analisi.
 - `bytecode_hash = "none"` e `cbor_metadata = false`: bytecode riproducibile.
@@ -83,7 +85,8 @@ Verifica: `make versions`.
    - Aderyn: `exclude` sotto `[detectors]` in `aderyn.toml`.
    In entrambi i casi la motivazione va scritta accanto all'esclusione.
 4. Le esclusioni sono decisioni di sicurezza: vanno riviste in code review come
-   il resto del diff.
+   il resto del diff, e vanno registrate in
+   [findings.md](findings.md) insieme al motivo.
 
 ## Limiti
 

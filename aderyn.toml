@@ -14,10 +14,18 @@ src = "src/"
 exclude = ["lib/", "test/", "script/"]
 
 [detectors]
-# Per default vengono eseguiti tutti i detector.
-# Escludere un detector solo dopo aver triagiato il finding e averlo documentato
-# in docs/static-analysis.md, es:
-# exclude = ["costly-loop"]
+# Per default vengono eseguiti tutti i detector. Le esclusioni qui sotto sono
+# triagiate una per una in docs/findings.md; le eccezioni puntuali si fanno
+# inline nel sorgente con `// aderyn-fp-next-line(<detector>)`.
+exclude = [
+    # Tutti i pagamenti sono pull verso msg.sender o verso feeRecipient, che e'
+    # immutabile e validato != address(0) nel costruttore.
+    "eth-send-unchecked-address",
+    # Scritture di stato dopo call esterne: ogni entrypoint e' nonReentrant e
+    # `finalized` viene settato prima delle interazioni (CEI). ATTENZIONE:
+    # questa esclusione presuppone il guard su OGNI funzione esterna.
+    "reentrancy-state-change",
+]
 
 [env]
 FOUNDRY_PROFILE = "default"

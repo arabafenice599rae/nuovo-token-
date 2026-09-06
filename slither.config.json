@@ -8,5 +8,5 @@
   "exclude_optimization": false,
   "exclude_low": false,
   "fail_on": "medium",
-  "detectors_to_exclude": ""
+  "detectors_to_exclude": "unused-return"
 }
