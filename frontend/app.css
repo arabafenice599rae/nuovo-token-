@@ -131,6 +131,7 @@ h1 {
 
 .figure {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   font-size: clamp(2rem, 8vw, 2.6rem);
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -160,7 +161,7 @@ h1 {
 .cell { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
 .cell.right { align-items: flex-end; text-align: right; }
 
-.value { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.value { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .value.mono { font-size: 1.15rem; font-weight: 500; letter-spacing: -0.01em; }
 .value .of { color: var(--ink-mute); font-weight: 500; }
 
@@ -193,6 +194,7 @@ h1 {
 
 .tile input,
 .tile-out {
+  font-variant-numeric: tabular-nums;
   flex: 1;
   min-width: 0;
   border: 0;
@@ -276,7 +278,7 @@ button:active:not(:disabled) { transform: scale(0.99); }
 
 /* ------------------------------------------------------------- mini tiles */
 
-.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.25rem, 1fr)); gap: 0.7rem; }
 
 .mini {
   display: flex;
@@ -311,7 +313,24 @@ footer a { color: inherit; }
 
 .notice { max-width: 30rem; margin: 4rem auto; padding: 1.25rem; color: var(--ink); font-family: var(--sans); }
 
+/* ------------------------------------------------------------ transitions */
+
+/* Values dim while a read is in flight and fade back in when they land, so the
+   page never snaps between states. Motion only, no change of colour or form. */
+#app[aria-busy="true"] .value,
+#app[aria-busy="true"] .figure,
+#app[aria-busy="true"] .pct,
+#app[aria-busy="true"] .mini-value,
+#app[aria-busy="true"] .tile-out { opacity: 0.45; }
+
+@keyframes tick { from { opacity: 0.3; } to { opacity: 1; } }
+
 @media (prefers-reduced-motion: no-preference) {
-  .meter-fill { transition: width 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
-  button { transition: transform 0.12s ease, opacity 0.15s ease; }
+  .meter-fill { transition: width 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+  button { transition: transform 0.14s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease; }
+  .value, .figure, .pct, .mini-value, .tile-out, h1, .sub { transition: opacity 0.24s ease; }
+  .tick { animation: tick 0.24s ease-out; }
+  .tile { transition: background-color 0.2s ease; }
+  .chip:active:not(:disabled), .pill:active:not(:disabled), .mini:active:not(:disabled) { transform: scale(0.97); }
+  .cta:active:not(:disabled) { transform: scale(0.985); }
 }

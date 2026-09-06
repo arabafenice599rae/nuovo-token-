@@ -26,6 +26,14 @@ The page refuses to do anything while `saleAddress` is the zero address, and
 checks that the address actually holds code on the configured chain before every
 transaction.
 
+## Staying current
+
+The page refreshes itself: it re-reads the sale every 15 seconds while the tab
+is in front (and immediately when you come back to it), and after sending a
+transaction it polls for the receipt and updates once it lands, rather than
+leaving a stale screen behind. Those reads go through the wallet's provider like
+every other call — there is still no RPC of the page's own.
+
 ## Security model
 
 The threat here is not a clever exploit against the contract — it is the page

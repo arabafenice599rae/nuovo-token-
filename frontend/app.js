@@ -42,6 +42,9 @@
   let account = null;
   let sale = null; // on-chain state, amounts as BigInt
   let quote = null; // { value, spend, tokens, fee, toPool, clamped }
+  let pending = null; // hash of a transaction being watched
+  const POLL_MS = 15000; // background refresh while the tab is visible
+  const RECEIPT_MS = 3000;
 
   // ---------------------------------------------------------------- helpers
 
@@ -109,8 +112,19 @@
     return BigInt(whole || "0") * WEI + BigInt((frac || "0").padEnd(18, "0"));
   }
 
+  const NO_FLASH = { countdown: true, status: true };
+
+  // Values fade in only when they actually change: no pulse on every repaint,
+  // and none at all for the ticking countdown.
   function setText(id, text) {
-    $(id).textContent = text;
+    const el = $(id);
+    const next = String(text);
+    if (el.textContent === next) return;
+    el.textContent = next;
+    if (NO_FLASH[id]) return;
+    el.classList.remove("tick");
+    void el.offsetWidth; // restart the animation
+    el.classList.add("tick");
   }
 
   function status(message, tone) {
@@ -122,6 +136,10 @@
 
   function now() {
     return BigInt(Math.floor(Date.now() / 1000));
+  }
+
+  function busy(state) {
+    $("app").setAttribute("aria-busy", state ? "true" : "false");
   }
 
   // ------------------------------------------------------------------- rpc
@@ -334,8 +352,43 @@
     if (value !== undefined) tx.value = "0x" + value.toString(16);
     // No gas or fee fields: the wallet estimates and the user sees the result.
     const hash = await request("eth_sendTransaction", [tx]);
-    status("sent " + hash);
+    status("pending " + hash.slice(0, 10) + "…");
+    watch(hash);
     return hash;
+  }
+
+  // Watch the transaction to completion so the page updates itself instead of
+  // asking the user to come back and refresh.
+  async function watch(hash) {
+    pending = hash;
+    for (let i = 0; i < 200 && pending === hash; i++) {
+      await new Promise((resolve) => setTimeout(resolve, RECEIPT_MS));
+      let receipt = null;
+      try {
+        receipt = await request("eth_getTransactionReceipt", [hash]);
+      } catch (err) {
+        continue; // transient provider error: keep waiting
+      }
+      if (!receipt) continue;
+      pending = null;
+      status(receipt.status === "0x1" ? "confirmed" : "reverted", receipt.status === "0x1" ? undefined : "error");
+      if (receipt.status === "0x1") $("amount").value = "";
+      await quietRefresh();
+      return;
+    }
+  }
+
+  // Keeps the numbers alive without touching the status line or throwing at
+  // the user when a single poll fails.
+  async function quietRefresh() {
+    try {
+      if (!isAddress(cfg.saleAddress) || cfg.saleAddress === ZERO) return;
+      await readSale();
+      updateQuote();
+      render();
+    } catch (err) {
+      /* transient: the next tick tries again */
+    }
   }
 
   async function withErrors(fn) {
@@ -364,10 +417,15 @@
       render();
       return;
     }
-    await assertDeployed();
-    await readSale();
-    updateQuote();
-    render();
+    busy(true);
+    try {
+      await assertDeployed();
+      await readSale();
+      updateQuote();
+      render();
+    } finally {
+      busy(false);
+    }
   }
 
   function wire() {
@@ -393,6 +451,14 @@
     }
 
     setInterval(tick, 1000);
+
+    // Poll only while the tab is in front, and catch up as soon as it is.
+    setInterval(function () {
+      if (document.visibilityState === "visible" && !pending) quietRefresh();
+    }, POLL_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") quietRefresh();
+    });
   }
 
   function start() {
