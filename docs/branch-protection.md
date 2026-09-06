@@ -5,36 +5,21 @@ checks are green. The configuration lives in the repository rather than only in
 the GitHub UI, so it can be reviewed, diffed and re-applied:
 [`.github/rulesets/main.json`](../.github/rulesets/main.json).
 
-## Plan caveat: nothing is enforced here yet
+## Where this is enforced
 
-This repository is **private under a personal account**, and GitHub does not
-enforce either mechanism in that combination:
+Enforcement depends on the repository's visibility and plan:
 
 | | Public repo | Private repo |
 | --- | --- | --- |
-| Rulesets | enforced on Free | **only on a Team organization** |
-| Classic branch protection | enforced on Free | **only on Pro, Team or Enterprise** |
+| Rulesets | **enforced on Free** | only under a Team organization |
+| Classic branch protection | enforced on Free | only on Pro, Team or Enterprise |
 
-Creating a ruleset here still succeeds — the UI accepts it and the API returns
-201 — but GitHub shows *"Your rulesets won't be enforced on this private
-repository until you move to a GitHub Team organization account"*, and merges
-continue to go through with red or unfinished checks.
-
-Three ways out, in order of cost:
-
-1. **Make the repository public.** Rulesets are enforced immediately, at no
-   cost. The contract is meant to be verifiable by anyone anyway, so this is
-   usually the natural end state for a launch.
-2. **Move it to an organization on the Team plan.** Keeps it private and makes
-   this ruleset enforced as written.
-3. **GitHub Pro on the personal account.** Keeps it private, but rulesets stay
-   unenforced: on Pro the working mechanism is *classic branch protection*, so
-   use the terminal snippet in the section below rather than the ruleset.
-
-Until one of those is true, the ruleset in this repository is a declaration of
-intent, not a gate. `.github/workflows/apply-ruleset.yml` can be run whenever
-you like — the ruleset it creates simply starts being enforced the moment the
-plan allows it.
+This repository is **public**, so the ruleset below is enforced as written once
+it is applied — no plan change needed. It was not, while the repository was
+private under a personal account: GitHub accepted the ruleset but showed
+*"Your rulesets won't be enforced on this private repository"* and merges went
+through regardless. If it ever goes back to private, that is the state it
+returns to.
 
 ## What it enforces
 
