@@ -42,21 +42,28 @@ stays blocked.
 The ruleset is not applied automatically: GitHub has no mechanism to read a
 ruleset from the repository. There are two ways to push it live.
 
+### By hand, from Settings
+
+**Settings → Rules → Rulesets → New branch ruleset**, target `main`, then tick
+the rules listed above with the three check names spelled exactly as the CI jobs
+are. This is the shortest path for a one-off: it needs no token and no secret.
+
 ### From the Actions tab
 
-`.github/workflows/apply-ruleset.yml` does it for you: **Actions → Apply ruleset
-→ Run workflow**. It creates the ruleset, or updates it in place if one named
-`main` already exists, then prints what is live — including the three required
-check names — so the run log is the receipt.
+`.github/workflows/apply-ruleset.yml` does the same thing repeatably: **Actions
+→ Apply ruleset → Run workflow**. It creates the ruleset, or updates it in place
+if one named `main` already exists, then prints what is live — including the
+three required check names — so the run log is the receipt. It is
+`workflow_dispatch` only: something that can change repository settings must
+never be reachable from an event an outsider can trigger.
 
-The workflow is `workflow_dispatch` only: something that can change repository
-settings must never be reachable from an event an outsider can trigger.
-
-It runs with `administration: write` on the automatic `GITHUB_TOKEN`. If that
-token turns out not to carry enough scope for the rulesets API, the run fails
-with a 403 and the fix is a fine-grained PAT with **Administration: read and
-write** on this repository, stored as the `RULESET_TOKEN` secret — the workflow
-prefers it when present.
+**It needs a token you provide.** The rulesets API requires repository
+administration scope, and the automatic `GITHUB_TOKEN` cannot be granted it —
+`administration` is not one of the permission keys a workflow can request. So
+create a fine-grained personal access token with **Administration: read and
+write** on this repository, store it as the `RULESET_TOKEN` secret, and the
+workflow will use it. Without the secret it stops on the first step and says so,
+rather than failing later with a bare 403.
 
 ### From a terminal
 
