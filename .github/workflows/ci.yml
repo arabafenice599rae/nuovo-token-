@@ -53,6 +53,9 @@ jobs:
       - name: Test
         run: forge test -vvv
 
+      - name: Frontend selectors match the contract
+        run: make check-selectors
+
   slither:
     name: Slither
     runs-on: ubuntu-latest
