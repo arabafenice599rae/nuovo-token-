@@ -29,8 +29,8 @@ build: ## Compila i contratti (solc pinnato in foundry.toml)
 test: ## Esegue i test
 	forge test -vvv
 
-.PHONY: test-ci
-test-ci: ## Esegue i test con il profilo CI (fuzzing esteso)
+.PHONY: test-nightly
+test-nightly: ## Campagna notturna: profilo ci, 20k run di fuzzing
 	FOUNDRY_PROFILE=ci forge test -vvv
 
 .PHONY: snapshot
@@ -64,7 +64,7 @@ aderyn: $(REPORTS_DIR) ## Analisi statica con Aderyn (config: aderyn.toml)
 analyze: build slither aderyn ## Esegue tutta la static analysis
 
 .PHONY: ci
-ci: fmt-check build test-ci analyze ## Riproduce in locale la pipeline di CI
+ci: fmt-check build test analyze ## Riproduce in locale la pipeline di CI
 
 .PHONY: versions
 versions: ## Stampa le versioni dei tool installati

@@ -29,6 +29,7 @@ make install     # dipendenze pinnate in lib/
 make build       # forge build --sizes
 make test        # forge test -vvv
 make analyze     # build + slither + aderyn
+make test-nightly # fuzzing esteso (profilo ci, 20k run)
 make ci          # riproduce in locale la pipeline di CI
 make help        # elenco completo dei target
 ```
@@ -54,6 +55,9 @@ serve solo a tenere verde la pipeline finche' non arriva il contratto del token.
 
 `.github/workflows/ci.yml` esegue tre job su ogni push e pull request:
 
-- **Build & test** — `forge fmt --check`, `forge build --sizes`, test con profilo `ci`
+- **Build & test** — `forge fmt --check`, `forge build --sizes`, `forge test` (profilo default: 2k run di fuzzing, invarianti 1000 x depth 150)
 - **Slither** — fallisce dai finding di impatto medium in su
 - **Aderyn** — fallisce sui finding High, report pubblicato come artifact
+
+`.github/workflows/nightly.yml` gira ogni notte alle 03:00 UTC (o a mano da
+Actions) con il profilo `ci`: 20.000 run di fuzzing. In locale: `make test-nightly`.

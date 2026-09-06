@@ -31,20 +31,17 @@ ignored_warnings_from = ["lib"]
 fs_permissions = [{ access = "read", path = "./out" }]
 
 [profile.default.fuzz]
-runs = 256
+runs = 2000
 
 [profile.default.invariant]
-runs = 256
-depth = 32
+runs = 1000
+depth = 150
 fail_on_revert = false
 
-# Profilo CI: più giri di fuzzing, stessa configurazione di compilazione
+# Profilo CI: campagna notturna (workflow nightly.yml).
+# Le invarianti ereditano il profilo default: 1000 run x depth 150.
 [profile.ci.fuzz]
-runs = 10_000
-
-[profile.ci.invariant]
-runs = 1_000
-depth = 64
+runs = 20000
 
 # Profilo "lite": build veloce in locale, non usarlo per l'analisi
 [profile.lite]
