@@ -4,7 +4,7 @@ permissions: {}
 
 on:
   schedule:
-    # 03:00 UTC, ogni notte
+    # 03:00 UTC, every night
     - cron: "0 3 * * *"
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ env:
 
 jobs:
   fuzz:
-    name: Fuzzing esteso
+    name: Extended fuzzing
     runs-on: ubuntu-latest
     timeout-minutes: 180
     permissions:
@@ -34,5 +34,5 @@ jobs:
           make install
           make deps-check
 
-      - name: Test (profilo ci)
+      - name: Test (ci profile)
         run: FOUNDRY_PROFILE=ci forge test -vvv

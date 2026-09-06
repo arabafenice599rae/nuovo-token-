@@ -12,12 +12,12 @@ import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol"
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
 
-/// @dev Fixture condiviso: PoolManager e PositionManager reali (nessun mock),
-/// permit2 etchato dal bytecode precompilato come nei test di v4-periphery.
+/// @dev Shared fixture: real PoolManager and PositionManager (no mocks), with
+/// permit2 etched from its precompiled bytecode as v4-periphery's own tests do.
 abstract contract SaleFixture is Test, DeployPermit2 {
-    // Parametri del lancio (gli stessi di script/Deploy.s.sol)
-    uint256 internal constant SALE_SUPPLY = 52_631_578_947_368_421_052_631_579; // supply totale: 100M esatti
-    uint256 internal constant PRICE_PER_TOKEN = 0.000_01 ether; // wei per 1e18 token
+    // Launch parameters (the same ones as script/Deploy.s.sol)
+    uint256 internal constant SALE_SUPPLY = 52_631_578_947_368_421_052_631_579; // total supply: exactly 100M
+    uint256 internal constant PRICE_PER_TOKEN = 0.000_01 ether; // wei per 1e18 token units
     uint256 internal constant SALE_DURATION = 7 days;
     uint256 internal constant SOFT_CAP_BPS = 5000; // 50%
 
@@ -59,23 +59,22 @@ abstract contract SaleFixture is Test, DeployPermit2 {
         _deploySale();
     }
 
-    /// @dev ETH necessario per comprare `tokens` unita' di token (arrotondato
-    /// per difetto, come fa il contratto).
+    /// @dev ETH needed to buy `tokens` token units, rounded down as the
+    /// contract does.
     function _costOf(uint256 tokens) internal pure returns (uint256) {
         return (tokens * PRICE_PER_TOKEN) / 1e18;
     }
 
-    /// @dev Costo per esaurire la vendita. Un wei compra 1e5 unita' di token,
-    /// e SALE_SUPPLY non e' un multiplo di 1e5: l'ultimo blocco parziale
-    /// richiede 1 wei in piu' del costo nominale. Il surplus viene rimborsato
-    /// dal clamp di `buy()`, quindi l'ETH effettivamente speso resta `_costOf`.
+    /// @dev Cost of selling out. One wei buys 1e5 token units and SALE_SUPPLY
+    /// is not a multiple of 1e5: the last partial block needs one wei more than
+    /// the nominal cost. The surplus is refunded by the clamp inside `buy()`,
+    /// so the ETH actually spent stays `_costOf`.
     function _costOfAll() internal pure returns (uint256) {
         return _costOf(SALE_SUPPLY) + 1;
     }
 
-    /// @dev Come `_costOf`, ma garantisce di comprare almeno `tokens` unita':
-    /// il costo nominale, arrotondato per difetto, ne comprerebbe una frazione
-    /// in meno.
+    /// @dev Like `_costOf`, but guarantees buying at least `tokens` units: the
+    /// nominal cost, rounded down, would buy a fraction less.
     function _costOfAtLeast(uint256 tokens) internal pure returns (uint256) {
         return _costOf(tokens) + 1;
     }

@@ -1,7 +1,7 @@
-# Dipendenze
+# Dependencies
 
-Tutte le dipendenze stanno in `lib/` come git submodule pinnati a un commit
-esatto (nessun tag mobile, nessuna versione "latest").
+Every dependency lives in `lib/` as a git submodule pinned to an exact commit —
+no floating tags, no "latest".
 
 | Path | Repo | Commit |
 | --- | --- | --- |
@@ -12,26 +12,27 @@ esatto (nessun tag mobile, nessuna versione "latest").
 | `lib/forge-std` | foundry-rs/forge-std | `3b20d60d14b343ee4f908cb8079495c07f5e8981` (1.9.6) |
 | `lib/v4-core/lib/solmate` | transmissions11/solmate | `4b47a19038b798b4a33d9749d25e570443520647` |
 
-`solmate` sta **dentro** `lib/v4-core/lib/` perche' e' li' che lo cercano gli
-import di v4-core (`solmate/=lib/solmate/` nel suo `remappings.txt`). E' un
-submodule di v4-core, non del progetto: v4-core lo pinna esattamente al commit
-`4b47a19`, lo stesso usato qui.
+`solmate` sits **inside** `lib/v4-core/lib/` because that is where v4-core's own
+imports look for it (`solmate/=lib/solmate/` in its `remappings.txt`). It is
+v4-core's submodule, not the project's: v4-core pins it at exactly `4b47a19`,
+the same commit used here.
 
-## Installazione e verifica
+## Install and verify
 
 ```bash
-make install      # inizializza i submodule di primo livello + solmate dentro v4-core
-make deps-check   # verifica che ogni dipendenza sia al commit pinnato
+make install      # top-level submodules + solmate inside v4-core
+make deps-check   # asserts every dependency sits at its pinned commit
 ```
 
-`make install` non usa `--recursive`: il checkout ricorsivo tirerebbe giu' anche
-le dipendenze annidate che non servono (forge-std e openzeppelin dentro v4-core,
-i submodule di permit2, una seconda copia di v4-core dentro v4-periphery).
+`make install` does not use `--recursive`: a recursive checkout would also pull
+nested dependencies that are never used (forge-std and openzeppelin inside
+v4-core, permit2's own submodules, a second copy of v4-core inside
+v4-periphery).
 
-## Remapping
+## Remappings
 
-`remappings.txt` mappa i prefissi usati dai contratti del progetto e dalle
-dipendenze:
+`remappings.txt` maps the prefixes used by the project's contracts and by the
+dependencies themselves:
 
 ```
 forge-std/=lib/forge-std/src/
@@ -41,38 +42,38 @@ openzeppelin-contracts/contracts/=lib/openzeppelin-contracts/contracts/
 solmate/=lib/v4-core/lib/solmate/
 permit2/=lib/permit2/
 @uniswap/v4-core/=lib/v4-core/
+@uniswap/v4-periphery/=lib/v4-periphery/
 v4-core/=lib/v4-core/src/
 v4-periphery/=lib/v4-periphery/src/
 ```
 
-Due note:
+Two notes:
 
-- v4-periphery importa sia `@openzeppelin/contracts/...` sia
-  `openzeppelin-contracts/contracts/...`: entrambi i prefissi puntano allo
-  stesso clone in `lib/openzeppelin-contracts`.
-- `@openzeppelin/=lib/openzeppelin-contracts/` sovrascrive il remapping che
-  forge auto-rileva dal `remappings.txt` di v4-core
-  (`@openzeppelin/=lib/v4-core/lib/openzeppelin-contracts/`), che punterebbe a
-  una directory non inizializzata. Controllare il risultato con
+- v4-periphery imports both `@openzeppelin/contracts/...` and
+  `openzeppelin-contracts/contracts/...`: both prefixes point at the same clone
+  in `lib/openzeppelin-contracts`.
+- `@openzeppelin/=lib/openzeppelin-contracts/` overrides the remapping forge
+  auto-detects from v4-core's own `remappings.txt`
+  (`@openzeppelin/=lib/v4-core/lib/openzeppelin-contracts/`), which would point
+  at a directory that is never initialised. Check the result with
   `forge remappings`.
 
-`test/Dependencies.t.sol` e' lo smoke test che tiene onesti i remapping: importa
-v4-core, v4-periphery, permit2 e OpenZeppelin, e deploya `PoolManager` con il
-profilo di compilazione del progetto (19.713 byte di runtime, sotto il limite
-EIP-170 anche senza `via_ir`).
+`test/Dependencies.t.sol` is the smoke test that keeps the remappings honest: it
+imports v4-core, v4-periphery, permit2 and OpenZeppelin, and deploys
+`PoolManager` under the project's compiler profile.
 
-## Aggiornare una dipendenza
+## Updating a dependency
 
 ```bash
 git -C lib/<dep> fetch origin
-git -C lib/<dep> checkout <nuovo-commit>
+git -C lib/<dep> checkout <new-commit>
 git add lib/<dep>
-# aggiornare la tabella qui sopra e, se e' solmate, anche tools/check-deps.sh
+# update the table above and, for solmate, tools/check-deps.sh as well
 make build test analyze
 ```
 
-Le dipendenze sono escluse dall'analisi statica (`filter_paths` in
-`slither.config.json`, `exclude` in `aderyn.toml`): si analizza il codice del
-progetto, non quello di terze parti. I warning del compilatore provenienti da
-`lib/` non fanno fallire la build (`ignored_warnings_from` in `foundry.toml`),
-quelli del codice del progetto si'.
+Dependencies are deliberately excluded from static analysis (`filter_paths` in
+`slither.config.json`, `exclude` in `aderyn.toml`): the analysis targets this
+project's code, not third-party code. Compiler warnings coming from `lib/` do
+not fail the build (`ignored_warnings_from` in `foundry.toml`); warnings from
+the project's own code do.

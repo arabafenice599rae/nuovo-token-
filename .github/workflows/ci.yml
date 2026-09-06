@@ -23,9 +23,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # I submodule vengono inizializzati da `make install`: il checkout
-          # ricorsivo scaricherebbe anche le dipendenze annidate non usate
-          # (openzeppelin/forge-std dentro v4-core, permit2, ...).
+          # Submodules are initialised by `make install`: a recursive checkout
+          # would also pull the nested dependencies nobody uses
+          # (openzeppelin/forge-std inside v4-core, permit2, ...).
           submodules: false
 
       - name: Install Foundry
@@ -46,7 +46,7 @@ jobs:
       - name: Build
         run: forge build --sizes
 
-      - name: Lint (informativo, non blocca)
+      - name: Lint (informational, does not gate)
         continue-on-error: true
         run: forge lint
 
@@ -62,9 +62,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # I submodule vengono inizializzati da `make install`: il checkout
-          # ricorsivo scaricherebbe anche le dipendenze annidate non usate
-          # (openzeppelin/forge-std dentro v4-core, permit2, ...).
+          # Submodules are initialised by `make install`: a recursive checkout
+          # would also pull the nested dependencies nobody uses
+          # (openzeppelin/forge-std inside v4-core, permit2, ...).
           submodules: false
 
       - name: Install Foundry
@@ -85,7 +85,7 @@ jobs:
         run: pip install "slither-analyzer==${SLITHER_VERSION}" crytic-compile
 
       - name: Run Slither
-        # La soglia di fallimento e' "fail_on": "medium" in slither.config.json
+        # The failure threshold is "fail_on": "medium" in slither.config.json
         run: slither .
 
   aderyn:
@@ -97,9 +97,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # I submodule vengono inizializzati da `make install`: il checkout
-          # ricorsivo scaricherebbe anche le dipendenze annidate non usate
-          # (openzeppelin/forge-std dentro v4-core, permit2, ...).
+          # Submodules are initialised by `make install`: a recursive checkout
+          # would also pull the nested dependencies nobody uses
+          # (openzeppelin/forge-std inside v4-core, permit2, ...).
           submodules: false
 
       - name: Install Foundry

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Verifica che le dipendenze in lib/ siano ai commit pinnati.
-# I submodule di primo livello sono pinnati da .gitmodules + indice git;
-# solmate e' un submodule di v4-core e vive in lib/v4-core/lib/solmate perche'
-# gli import di v4-core lo cercano li'.
+# Assert the dependencies in lib/ sit at their pinned commits.
+# Top-level submodules are pinned by .gitmodules plus the git index; solmate is
+# a submodule of v4-core and lives in lib/v4-core/lib/solmate, because that is
+# where v4-core's own imports look for it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -13,13 +13,13 @@ status=0
 
 while read -r _ commit _ path; do
     if [[ ! -d "$path/.git" && ! -f "$path/.git" ]]; then
-        echo "MANCANTE  $path (atteso $commit) - esegui 'make install'" >&2
+        echo "MISSING   $path (expected $commit) - run 'make install'" >&2
         status=1
         continue
     fi
     actual="$(git -C "$path" rev-parse HEAD)"
     if [[ "$actual" != "$commit" ]]; then
-        echo "DISALLINEATO $path: atteso $commit, trovato $actual" >&2
+        echo "MISMATCH  $path: expected $commit, found $actual" >&2
         status=1
     else
         echo "ok  $path  $commit"
@@ -27,12 +27,12 @@ while read -r _ commit _ path; do
 done < <(git ls-files -s lib | grep '^160000')
 
 if [[ ! -d lib/v4-core/lib/solmate/.git && ! -f lib/v4-core/lib/solmate/.git ]]; then
-    echo "MANCANTE  lib/v4-core/lib/solmate (atteso $SOLMATE_COMMIT) - esegui 'make install'" >&2
+    echo "MISSING   lib/v4-core/lib/solmate (expected $SOLMATE_COMMIT) - run 'make install'" >&2
     status=1
 else
     actual="$(git -C lib/v4-core/lib/solmate rev-parse HEAD)"
     if [[ "$actual" != "$SOLMATE_COMMIT" ]]; then
-        echo "DISALLINEATO lib/v4-core/lib/solmate: atteso $SOLMATE_COMMIT, trovato $actual" >&2
+        echo "MISMATCH  lib/v4-core/lib/solmate: expected $SOLMATE_COMMIT, found $actual" >&2
         status=1
     else
         echo "ok  lib/v4-core/lib/solmate  $SOLMATE_COMMIT"

@@ -1,159 +1,155 @@
-# Obiettivo del lancio
+# What this launch is for
 
-## In una riga
+## In one line
 
-Vendere una quota fissa di token a prezzo fisso e, appena la vendita chiude con
-successo, immettere automaticamente ricavato e riserva in un pool Uniswap v4
-allo stesso prezzo, con la posizione di liquidita' trattenuta per sempre dal
-contratto e nessuna figura amministrativa che possa intervenire dopo il deploy.
+Sell a fixed share of the supply at a fixed price and, as soon as the sale
+closes successfully, move the proceeds and the liquidity reserve into a Uniswap
+v4 pool at that same price — with the liquidity position held by the contract
+forever and nobody left with administrative power after deployment.
 
-## Il problema
+## The problem
 
-In un lancio di token il rischio non e' il codice del token: e' la finestra fra
-la fine della raccolta e la creazione del mercato. In quella finestra, nei
-lanci gestiti manualmente, chi ha raccolto i fondi decide da solo quanta
-liquidita' immettere, a che prezzo, quando, e se ritirarla il giorno dopo. Le
-tre modalita' di fallimento tipiche sono:
+In a token launch the risk is not the token code: it is the window between the
+end of the raise and the creation of the market. In that window, in manually run
+launches, whoever collected the funds decides alone how much liquidity to add,
+at what price, when — and whether to pull it the next day. The three typical
+failure modes are:
 
-1. **liquidita' insufficiente o assente** — il mercato apre sottile e il primo
-   ordine muove il prezzo di percentuali a due cifre;
-2. **liquidita' ritirabile** — chi controlla la posizione LP puo' rimuoverla e
-   uscire con il ricavato (rug pull);
-3. **prezzo d'apertura arbitrario** — il pool viene inizializzato a un prezzo
-   scollegato da quello pagato dagli acquirenti, o viene manipolato da terzi
-   prima che la liquidita' arrivi.
+1. **thin or absent liquidity** — the market opens shallow and the first order
+   moves the price by double-digit percentages;
+2. **withdrawable liquidity** — whoever controls the LP position can remove it
+   and walk away with the proceeds (rug pull);
+3. **arbitrary opening price** — the pool is initialised at a price unrelated to
+   what buyers paid, or is manipulated by a third party before the liquidity
+   arrives.
 
-## L'obiettivo
+## The objective
 
-Rendere le tre cose sopra **impossibili per costruzione**, non oggetto di
-promesse. In concreto il lancio deve garantire che:
+Make all three **impossible by construction**, rather than a matter of promises.
+Concretely, the launch must guarantee that:
 
-| Obiettivo | Come e' garantito |
+| Guarantee | How it is enforced |
 | --- | --- |
-| Prezzo di vendita noto e invariabile | `pricePerToken` e' `immutable`: fissato al deploy, nessuno lo puo' cambiare |
-| Prezzo di apertura del mercato = prezzo di vendita | il pool e' inizializzato nel costruttore al prezzo derivato da `pricePerToken`; prima del mint della posizione il contratto **verifica** che prezzo e tick siano ancora quelli, e altrimenti reverte |
-| Liquidita' proporzionale al raccolto | il 90% dell'ETH raccolto e il 90% della supply in vendita finiscono nel pool; il rapporto e' fissato dalle costanti, non da una decisione |
-| Liquidita' non ritirabile | l'NFT della posizione resta al contratto: non esiste nessuna funzione di trasferimento, approvazione o rimozione della liquidita' |
-| Nessuna allocazione occulta | l'intera supply e' coniata nel costruttore ed e' solo vendita + liquidita'; non esiste una funzione di mint, e i token non venduti vengono **bruciati** |
-| Uscita garantita se il lancio fallisce | sotto soft cap alla scadenza, o se la migrazione non avviene entro 3 giorni, ogni acquirente riprende **il 100% dell'ETH versato, fee inclusa** |
-| Nessun potere discrezionale | nessun owner, nessun admin, nessuna pausa, nessun upgrade, nessun proxy |
+| The sale price is known and cannot change | `pricePerToken` is `immutable`: set at deployment, nobody can change it |
+| Market opening price = sale price | the pool is initialised in the constructor at the price derived from `pricePerToken`; before minting the position the contract **checks** that price and tick are still exactly that, and reverts otherwise |
+| Liquidity proportional to the raise | 90% of the ETH raised and 90% of the sale supply go into the pool; the ratio is a constant, not a decision |
+| Liquidity cannot be pulled | the position NFT stays with the contract: no function transfers it, approves it, or decreases liquidity |
+| No hidden allocation | the entire supply is minted in the constructor and is only sale + liquidity; there is no mint function, and unsold tokens are **burned** |
+| A guaranteed exit if the launch fails | below the soft cap at the deadline, or if the migration does not happen within 3 days, every buyer takes back **100% of the ETH they paid, fee included** |
+| No discretionary power | no owner, no admin, no pause, no upgrade, no proxy |
 
-## Come funziona
+## How it works
 
-### Parametri (fissati al deploy, tutti `immutable`)
+### Parameters (set at deployment, all `immutable`)
 
-| Parametro | Significato |
+| Parameter | Meaning |
 | --- | --- |
-| `saleSupply` | token messi in vendita |
-| `pricePerToken` | wei per 1e18 unita' di token |
-| `saleDuration` | durata della finestra di acquisto |
-| `softCapBps` | quota minima di `saleSupply` da vendere perche' il lancio sia valido |
-| `feeRecipient` | destinatario della commissione e delle swap fee |
+| `saleSupply` | tokens put on sale |
+| `pricePerToken` | wei per 1e18 token units |
+| `saleDuration` | length of the buying window |
+| `softCapBps` | minimum share of `saleSupply` that must sell for the launch to be valid |
+| `feeRecipient` | recipient of the sale fee and of the pool swap fees |
 
-Da questi discendono, senza altre scelte: `liquidityReserve` = 90% di
-`saleSupply` (la riserva destinata al pool), la supply totale del token
-(`saleSupply + liquidityReserve`, con un tetto di 1 miliardo) e il prezzo di
-inizializzazione del pool. Per questo lancio la supply totale e' fissata a
-**100.000.000 di token esatti**: poiche' la riserva e' il 90% di cio' che si
-vende, la supply totale e' 19/10 del venduto, quindi **52.631.578,95 token in
-vendita** (100M x 10/19) e 47.368.421,05 di riserva.
+Everything else follows without further choices: `liquidityReserve` = 90% of
+`saleSupply` (the share destined for the pool), the token's total supply
+(`saleSupply + liquidityReserve`, capped at one billion) and the pool's
+initialisation price. For this launch the total supply is fixed at exactly
+**100,000,000 tokens**: since the reserve is 90% of what is sold, the minted
+supply is 19/10 of the sale supply, so **52,631,578.95 tokens are on sale**
+(100M × 10/19) and 47,368,421.05 form the reserve.
 
-### Le fasi
+### The phases
 
-**A. Vendita.** Chiunque compra con `buy()` al prezzo fisso finche' c'e'
-disponibilita' e finche' non scade la finestra. Il 10% dell'ETH e' commissione,
-il 90% e' vincolato alla liquidita'. I token restano in escrow nel contratto: si
-ritirano dopo la migrazione. L'eventuale ETH in eccesso sull'ultimo acquisto
-viene restituito nella stessa transazione.
+**A. Sale.** Anyone buys with `buy()` at the fixed price while supply lasts and
+the window is open. 10% of the ETH is the fee, 90% is committed to liquidity.
+Tokens stay in escrow inside the contract and are withdrawn after the migration.
+Any ETH sent in excess on the last purchase is returned in the same transaction.
 
-**B. Esito.** Il lancio e' valido se la vendita si esaurisce (in qualsiasi
-momento) oppure se alla scadenza e' stato raggiunto il soft cap. Altrimenti e'
-fallito, e si apre il rimborso.
+**B. Outcome.** The launch is valid if the sale sells out (at any time) or if
+the soft cap has been reached by the deadline. Otherwise it has failed, and
+refunds open.
 
-**C. Migrazione.** `finalize()` e' **permissionless**: la puo' chiamare
-chiunque, non serve il deployer. In una sola transazione il contratto:
+**C. Migration.** `finalize()` is **permissionless**: anyone can call it, the
+deployer is not needed. In a single transaction the contract:
 
-1. verifica il prezzo del pool e, se qualcuno lo ha spostato, lo **riporta al
-   prezzo di listing** con uno swap a budget limitato;
-2. **rifiuta di procedere** se il prezzo o il tick non coincidono esattamente
-   con il target (chi manipola il pool blocca la migrazione, non la altera);
-3. minta la posizione di liquidita' su un intervallo ampio ma limitato, tramite
-   il PositionManager ufficiale di Uniswap v4;
-4. **brucia** tutti i token residui non destinati agli acquirenti;
-5. restituisce a `feeRecipient` l'ETH avanzato dal mint.
+1. checks the pool price and, if someone moved it, brings it **back to the
+   listing price** with a budget-limited swap;
+2. **refuses to proceed** if price and tick do not match the target exactly
+   (manipulating the pool blocks the migration, it does not alter it);
+3. mints the liquidity position over a wide but bounded range, through the
+   official Uniswap v4 PositionManager;
+4. **burns** every residual token not owed to buyers;
+5. returns to `feeRecipient` the ETH left over from the mint.
 
-Se la vendita chiude sotto il 100% (caso soft cap), la liquidita' viene
-calcolata sul raccolto effettivo: entra nel pool la quantita' di token che
-corrisponde all'ETH disponibile a quel prezzo, e **tutto il resto e' bruciato**.
-Non esiste uno scenario in cui token invenduti restino nelle mani di qualcuno.
+If the sale closes below 100% (the soft-cap case) the liquidity is computed on
+what was actually raised: the pool receives the amount of tokens that matches
+the available ETH at that price, and **everything else is burned**. There is no
+scenario in which unsold tokens end up in somebody's hands.
 
-**I numeri di questo lancio.** I parametri sono fissati in
-`script/Deploy.s.sol` e sono gli stessi che la suite di test esercita:
+**The figures for this launch.** The parameters live in `script/Deploy.s.sol`
+and are the ones the test suite exercises:
 
-| Voce | Valore |
+| Item | Value |
 | --- | --- |
-| Supply totale coniata | 100.000.000 token (esatti) |
-| Token in vendita | 52.631.578,947368421052631579 |
-| Riserva di liquidita' | 47.368.421,052631578947368421 |
-| Prezzo | 0,00001 ETH per token |
-| Soft cap | 26.315.789,47 token (50%) |
-| Durata della vendita | 7 giorni |
-| Raccolta a vendita esaurita | 526,32 ETH |
-| Prezzo di apertura del pool | 0,00001 ETH (tick 115.135) |
+| Total minted supply | 100,000,000 tokens (exact) |
+| On sale | 52,631,578.947368421052631579 |
+| Liquidity reserve | 47,368,421.052631578947368421 |
+| Price | 0.00001 ETH per token |
+| Soft cap | 26,315,789.47 tokens (50%) |
+| Sale window | 7 days |
+| Raised at full sale | 526.32 ETH |
+| Pool opening price | 0.00001 ETH (tick 115,135) |
 
-A vendita esaurita: **526,32 ETH raccolti**, di cui **52,63 ETH di commissione**
-e **473,68 ETH nel pool** insieme a **47.368.421 token**, allo stesso prezzo
-della vendita. I 52.631.578,95 token venduti restano in escrow fino al
-`claim()`; circa 0,52 ETH (0,11% del budget di liquidita') non entra nella
-posizione per arrotondamento e viene spazzato a `feeRecipient` insieme alla
-commissione.
+At full sale: **526.32 ETH raised**, of which **52.63 ETH in fees** and
+**473.68 ETH into the pool** alongside **47,368,421 tokens**, at the same price
+as the sale. The 52,631,578.95 tokens sold stay in escrow until `claim()`; about
+0.52 ETH (0.11% of the liquidity budget) does not fit into the position because
+of rounding and is swept to `feeRecipient` along with the fee.
 
-Chiusura al soft cap (50%): circa 263 ETH raccolti, 237 ETH nel pool con
-23.710.333 token, e vengono bruciati sia la riserva avanzata sia l'invenduto —
-circa 49.974.000 token distrutti, supply finale circa 50.026.000. Entrambi gli
-scenari sono verificati da `test_soldOutLifecycle` e
+Closing at the soft cap (50%): about 263 ETH raised, 237 ETH into the pool with
+23,710,333 tokens, and both the unused reserve and the unsold supply are burned
+— roughly 49,974,000 tokens destroyed, final supply about 50,026,000. Both
+scenarios are covered by `test_soldOutLifecycle` and
 `test_softCapFinalizeBurnsUnsoldAndSurplus`.
 
-Un dettaglio di arrotondamento: un wei di ETH compra 100.000 unita' minime di
-token, e la quantita' in vendita non e' un multiplo esatto di quel blocco. Per
-esaurire la vendita serve **1 wei in piu'** del costo nominale; il surplus viene
-comunque rimborsato dallo stesso `buy()`.
+One rounding detail: a single wei of ETH buys 100,000 minimal token units, and
+the amount on sale is not a multiple of that block. Selling out therefore takes
+**one wei more** than the nominal cost; the surplus is refunded by `buy()`
+itself.
 
-**D. Consegna o rimborso.** A migrazione avvenuta ogni acquirente ritira i
-propri token con `claim()`. Se invece il lancio e' fallito, `refund()` restituisce
-l'intero ETH versato, commissione compresa. La commissione e' prelevabile solo
-**dopo** la migrazione: finche' il rimborso e' possibile, resta a garanzia degli
-acquirenti.
+**D. Delivery or refund.** Once migrated, each buyer withdraws their tokens with
+`claim()`. If the launch failed instead, `refund()` returns the entire ETH paid,
+fee included. The fee can only be withdrawn **after** the migration: while
+refunds are still possible it stays as collateral for buyers.
 
-**E. Vita del pool.** Le swap fee maturate dalla posizione sono raccolte con
-`collectPoolFees()`, anch'essa permissionless e con destinatario fissato al
-deploy: la chiamata puo' partire da chiunque, l'incasso va sempre e solo a
-`feeRecipient`. Il capitale della posizione non viene mai toccato.
+**E. Pool life.** Swap fees accrued by the position are collected with
+`collectPoolFees()`, also permissionless and with a recipient fixed at
+deployment: anyone can make the call, the proceeds always go to `feeRecipient`.
+The position's principal is never touched.
 
-## Cosa il lancio **non** promette
+## What the launch does **not** promise
 
-Va detto con la stessa chiarezza:
+Stated with the same clarity as the guarantees:
 
-- **Non promette un prezzo.** Il contratto garantisce che il mercato apra al
-  prezzo di vendita con liquidita' reale; da li' in poi il prezzo lo fa il
-  mercato, e puo' scendere.
-- **Non elimina il rischio di controparte sulle commissioni.** `feeRecipient`
-  incassa il 10% della raccolta e le swap fee perpetue. E' un indirizzo fissato
-  al deploy e non modificabile, ma resta una concentrazione economica: chi
-  valuta il lancio deve sapere chi e'.
-- **Non e' immune al grief.** Un terzo con capitale sufficiente puo' manipolare
-  il pool in modo che la migrazione reverta. Non ci guadagna nulla e non tocca i
-  fondi: l'effetto e' che, passati 3 giorni dalla scadenza, gli acquirenti
-  rientrano interamente dei propri versamenti.
-- **Non e' un audit.** Il repository contiene analisi statica, 19 test e
-  invarianti verificate su 150.000 chiamate (vedi
-  [testing.md](testing.md) e [findings.md](findings.md)); il codice di
-  integrazione con Uniswap v4 e' custom e va sottoposto a revisione
-  indipendente prima di gestire fondi reali.
+- **It does not promise a price.** The contract guarantees the market opens at
+  the sale price with real liquidity; from there the price is whatever the
+  market makes it, and it can fall.
+- **It does not remove counterparty risk on the fees.** `feeRecipient` collects
+  10% of the raise and the perpetual swap fees. The address is fixed at
+  deployment and cannot be changed, but it remains an economic concentration:
+  anyone assessing the launch needs to know who it is.
+- **It is not immune to griefing.** A third party with enough capital can
+  manipulate the pool so that the migration reverts. They gain nothing and touch
+  no funds: the effect is that, 3 days after the deadline, buyers recover their
+  contributions in full.
+- **It is not an audit.** This repository carries static analysis, 20 tests and
+  invariants checked over 150,000 calls (see [testing.md](testing.md) and
+  [findings.md](findings.md)); the Uniswap v4 integration is custom code and
+  needs independent review before it handles real funds.
 
-## Verificabilita'
+## Verifiability
 
-Le proprieta' dichiarate qui non sono affermazioni di marketing: ognuna
-corrisponde a un'invariante numerata nell'header del contratto e a un test che
-la esercita. La mappa completa — quale test copre quale invariante, con quali
-numeri — e' in [testing.md](testing.md).
+The properties claimed here are not marketing statements: each corresponds to a
+numbered invariant in the contract header and to a test that exercises it. The
+full map — which test covers which invariant, with which numbers — is in
+[testing.md](testing.md).
