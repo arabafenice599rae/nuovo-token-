@@ -33,6 +33,14 @@ test: ## Esegue i test
 test-nightly: ## Campagna notturna: profilo ci, 20k run di fuzzing
 	FOUNDRY_PROFILE=ci forge test -vvv
 
+.PHONY: invariant
+invariant: ## Esegue solo le invarianti
+	forge test --match-contract Invariants -vv
+
+.PHONY: coverage
+coverage: ## Report di copertura
+	forge coverage --report summary
+
 .PHONY: snapshot
 snapshot: ## Aggiorna lo snapshot del gas
 	forge snapshot

@@ -82,12 +82,10 @@ dalla CI.
 
 - L'analisi statica non verifica le invarianti I1-I13 dichiarate nell'header del
   contratto: sono proprieta' di logica economica e di sequenza, fuori dalla
-  portata di slither e aderyn.
-- **Nel repo non ci sono test funzionali di `FixedSaleV4`.** I 7 test di
-  integrazione e il fuzz a 600 run citati nell'header sono stati eseguiti
-  altrove e non fanno parte di questo progetto: `test/` contiene solo lo smoke
-  test delle dipendenze. Finche' non vengono portati qui, la CI verifica che il
-  contratto compili e che non emerga nessun finding statico nuovo — non che si
-  comporti correttamente.
+  portata di slither e aderyn. Per quelle c'e' la suite descritta in
+  [testing.md](testing.md) (I1-I5, I9, I12 come invarianti con handler; I7/I8 e
+  I11 come test di percorso; I13 ancora scoperta).
+- La suite di integrazione REV7 citata nell'header del contratto non e' mai
+  stata consegnata in questo repo: i test presenti sono stati scritti da zero.
 - Il codice upstream in `lib/` e' escluso dall'analisi per scelta
   (`filter_paths`, `exclude`): si analizza il glue code, non le dipendenze.

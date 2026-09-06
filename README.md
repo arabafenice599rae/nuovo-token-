@@ -31,6 +31,8 @@ make deps-check  # verifica i pin
 make install     # dipendenze pinnate in lib/
 make build       # forge build --sizes
 make test        # forge test -vvv
+make invariant   # solo le invarianti (I1-I5, I9, I12)
+make coverage    # copertura
 make analyze     # build + slither + aderyn
 make test-nightly # fuzzing esteso (profilo ci, 20k run)
 make ci          # riproduce in locale la pipeline di CI
@@ -41,10 +43,10 @@ make help        # elenco completo dei target
 
 ```
 src/            contratti (FixedSaleV4.sol)
-test/           test Foundry
+test/           test di percorso, invarianti con handler, fixture condiviso
 lib/            dipendenze (submodule pinnati)
 tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
-docs/           documentazione (dipendenze, static analysis, findings)
+docs/           documentazione (dipendenze, static analysis, findings, test)
 foundry.toml    profili di compilazione (default / ci / lite)
 remappings.txt  remapping degli import verso lib/
 slither.config.json, aderyn.toml   configurazione dell'analisi statica
@@ -56,7 +58,9 @@ slither.config.json, aderyn.toml   configurazione dell'analisi statica
   post-deploy) e `FixedSaleV4` (vendita, migrazione, claim/refund, fee).
 
 Il triage completo dei finding di analisi statica, con le soppressioni attive e
-i loro motivi, e' in [docs/findings.md](docs/findings.md).
+i loro motivi, e' in [docs/findings.md](docs/findings.md); la suite di test e la
+copertura delle invarianti I1-I13 sono descritte in
+[docs/testing.md](docs/testing.md).
 
 Il contratto viene compilato **con via-ir** (`foundry.toml`), per parita' con il
 bytecode verificato; il profilo `lite` disattiva via-ir per le iterazioni veloci.
