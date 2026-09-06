@@ -124,12 +124,11 @@ run.
 
 Three jobs on every push and pull request — build & test, Slither, Aderyn
 (report uploaded as an artifact) — plus a nightly campaign at 03:00 UTC with the
-`ci` profile (20k fuzz runs). The ruleset intended for `main` lives in
-[`.github/rulesets/main.json`](.github/rulesets/main.json) and can be applied
-from **Actions → Apply ruleset → Run workflow**. Note that GitHub does not
-enforce rulesets on a private repository under a personal account: see
-[docs/branch-protection.md](docs/branch-protection.md) for what that means and
-the three ways to get real enforcement.
+`ci` profile (20k fuzz runs). `main` is governed by the ruleset in
+[`.github/rulesets/main.json`](.github/rulesets/main.json) — required checks, a
+pull request for every change and no admin bypass — applied from
+**Actions → Apply ruleset → Run workflow**. Details in
+[docs/branch-protection.md](docs/branch-protection.md).
 
 <details>
 <summary><strong>Repository layout</strong></summary>
