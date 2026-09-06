@@ -25,6 +25,8 @@ extra_output = ["storageLayout"]
 
 # I warning del compilatore (e del linter) sono errori: la static analysis parte da un build pulito
 deny = "warnings"
+# ...ma non quelli provenienti dalle dipendenze in lib/
+ignored_warnings_from = ["lib"]
 
 fs_permissions = [{ access = "read", path = "./out" }]
 

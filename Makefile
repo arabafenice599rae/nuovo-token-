@@ -13,8 +13,13 @@ help: ## Mostra i target disponibili
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: ## Scarica le dipendenze (git submodules in lib/)
-	git submodule update --init --recursive
+install: ## Scarica le dipendenze pinnate in lib/ (+ solmate dentro v4-core)
+	git submodule update --init lib/forge-std lib/v4-core lib/v4-periphery lib/permit2 lib/openzeppelin-contracts
+	git -C lib/v4-core submodule update --init lib/solmate
+
+.PHONY: deps-check
+deps-check: ## Verifica che le dipendenze siano ai commit pinnati
+	./tools/check-deps.sh
 
 .PHONY: build
 build: ## Compila i contratti (solc pinnato in foundry.toml)
