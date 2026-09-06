@@ -35,7 +35,7 @@ contract FixedSaleV4Test is SaleFixture {
         uint256 cost = _costOf(SALE_SUPPLY);
 
         vm.prank(alice);
-        sale.buy{value: cost}();
+        sale.buy{value: _costOfAll()}();
 
         assertEq(sale.totalSold(), SALE_SUPPLY, "sold out");
         assertEq(sale.feesAccrued(), cost / 10, "fee 10%");
@@ -139,7 +139,7 @@ contract FixedSaleV4Test is SaleFixture {
     /// normalizzare (unlockCallback) e mintare comunque al prezzo di listing.
     function test_finalizeNormalizesAfterFreeMove() public {
         vm.prank(alice);
-        sale.buy{value: _costOf(SALE_SUPPLY)}();
+        sale.buy{value: _costOfAll()}();
 
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(address(0)),
@@ -176,7 +176,7 @@ contract FixedSaleV4Test is SaleFixture {
     /// permissionless verso feeRecipient, senza toccare il principal (I9).
     function test_collectPoolFeesLeavesPrincipalUntouched() public {
         vm.prank(alice);
-        sale.buy{value: _costOf(SALE_SUPPLY)}();
+        sale.buy{value: _costOfAll()}();
         sale.finalize();
 
         uint128 liquidityBefore = sale.bootstrapLiquidity();
@@ -216,7 +216,7 @@ contract FixedSaleV4Test is SaleFixture {
     /// comunque esattamente al target.
     function test_finalizeCrossesHostileLiquidity() public {
         vm.prank(alice);
-        sale.buy{value: _costOf(SALE_SUPPLY)}();
+        sale.buy{value: _costOfAll()}();
 
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(address(0)),
@@ -345,10 +345,9 @@ contract FixedSaleV4Test is SaleFixture {
     /// nel pool entra la liquidita' che l'ETH raccolto sostiene al prezzo di
     /// listing e tutto il resto — riserva avanzata e invenduto — viene bruciato.
     function test_softCapFinalizeBurnsUnsoldAndSurplus() public {
-        uint256 sold = SALE_SUPPLY / 2;
-
         vm.prank(alice);
-        sale.buy{value: _costOf(sold)}();
+        sale.buy{value: _costOfAtLeast(SALE_SUPPLY / 2)}();
+        uint256 sold = sale.totalSold();
 
         vm.warp(block.timestamp + SALE_DURATION);
         sale.finalize();

@@ -21,9 +21,12 @@ contract DeployScript is Script {
     string internal constant SYMBOL = "LNCH";
 
     /// @dev Token in vendita. La supply totale coniata e' SALE_SUPPLY + 90%
-    ///      (riserva di liquidita'): 100M in vendita => 190M di supply totale,
-    ///      di cui la parte non impiegata viene bruciata al finalize.
-    uint256 internal constant SALE_SUPPLY = 100_000_000e18;
+    ///      (riserva di liquidita'), cioe' 19/10 di SALE_SUPPLY: per una supply
+    ///      totale di esattamente 100.000.000 token servono 100M * 10/19 in
+    ///      vendita e 100M * 9/19 di riserva. E' l'unico valore intero che
+    ///      chiude a 100M esatti con lo split 90/10 del contratto.
+    ///      52.631.578,947368421052631579 + 47.368.421,052631578947368421 = 100M
+    uint256 internal constant SALE_SUPPLY = 52_631_578_947_368_421_052_631_579;
 
     /// @dev Prezzo fisso: wei per 1e18 unita' di token. 0,00001 ETH per token
     ///      => 1.000 ETH raccolti a vendita esaurita.

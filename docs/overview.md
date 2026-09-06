@@ -53,9 +53,10 @@ promesse. In concreto il lancio deve garantire che:
 Da questi discendono, senza altre scelte: `liquidityReserve` = 90% di
 `saleSupply` (la riserva destinata al pool), la supply totale del token
 (`saleSupply + liquidityReserve`, con un tetto di 1 miliardo) e il prezzo di
-inizializzazione del pool. Per questo lancio: **100.000.000 di token in vendita
-a 0,00001 ETH**, quindi 90.000.000 di riserva, 190.000.000 di supply totale e
-1.000 ETH di raccolta a vendita esaurita.
+inizializzazione del pool. Per questo lancio la supply totale e' fissata a
+**100.000.000 di token esatti**: poiche' la riserva e' il 90% di cio' che si
+vende, la supply totale e' 19/10 del venduto, quindi **52.631.578,95 token in
+vendita** (100M x 10/19) e 47.368.421,05 di riserva.
 
 ### Le fasi
 
@@ -91,26 +92,32 @@ Non esiste uno scenario in cui token invenduti restino nelle mani di qualcuno.
 
 | Voce | Valore |
 | --- | --- |
-| Token in vendita | 100.000.000 |
+| Supply totale coniata | 100.000.000 token (esatti) |
+| Token in vendita | 52.631.578,947368421052631579 |
+| Riserva di liquidita' | 47.368.421,052631578947368421 |
 | Prezzo | 0,00001 ETH per token |
-| Riserva di liquidita' | 90.000.000 token |
-| Supply totale coniata | 190.000.000 token |
-| Soft cap | 50.000.000 token (50%) |
+| Soft cap | 26.315.789,47 token (50%) |
 | Durata della vendita | 7 giorni |
-| Raccolta a vendita esaurita | 1.000 ETH |
+| Raccolta a vendita esaurita | 526,32 ETH |
 | Prezzo di apertura del pool | 0,00001 ETH (tick 115.135) |
 
-A vendita esaurita: 1.000 ETH raccolti, di cui **100 ETH di commissione** e
-**900 ETH nel pool** insieme a **90.000.000 token**, allo stesso prezzo della
-vendita. I 100.000.000 di token venduti restano in escrow fino al `claim()`;
-circa 1 ETH (0,11% del budget di liquidita') non entra nella posizione per
-arrotondamento e viene spazzato a `feeRecipient` insieme alla commissione.
+A vendita esaurita: **526,32 ETH raccolti**, di cui **52,63 ETH di commissione**
+e **473,68 ETH nel pool** insieme a **47.368.421 token**, allo stesso prezzo
+della vendita. I 52.631.578,95 token venduti restano in escrow fino al
+`claim()`; circa 0,52 ETH (0,11% del budget di liquidita') non entra nella
+posizione per arrotondamento e viene spazzato a `feeRecipient` insieme alla
+commissione.
 
-Chiusura al soft cap (50%): 500 ETH raccolti, 450 ETH nel pool con 45.000.000
-token, e vengono bruciati sia i 45.000.000 di riserva avanzata sia i 50.000.000
-rimasti invenduti — 95.000.000 token distrutti, supply finale 95.000.000.
-Entrambi gli scenari sono verificati da `test_soldOutLifecycle` e
+Chiusura al soft cap (50%): circa 263 ETH raccolti, 237 ETH nel pool con
+23.710.333 token, e vengono bruciati sia la riserva avanzata sia l'invenduto —
+circa 49.974.000 token distrutti, supply finale circa 50.026.000. Entrambi gli
+scenari sono verificati da `test_soldOutLifecycle` e
 `test_softCapFinalizeBurnsUnsoldAndSurplus`.
+
+Un dettaglio di arrotondamento: un wei di ETH compra 100.000 unita' minime di
+token, e la quantita' in vendita non e' un multiplo esatto di quel blocco. Per
+esaurire la vendita serve **1 wei in piu'** del costo nominale; il surplus viene
+comunque rimborsato dallo stesso `buy()`.
 
 **D. Consegna o rimborso.** A migrazione avvenuta ogni acquirente ritira i
 propri token con `claim()`. Se invece il lancio e' fallito, `refund()` restituisce

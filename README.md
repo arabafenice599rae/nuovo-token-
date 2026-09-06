@@ -16,9 +16,10 @@ per sempre dal contratto.
   commissione inclusa
 - **nessun owner, nessun admin, nessuna pausa, nessun upgrade**
 
-Parametri del lancio: **100.000.000 token in vendita a 0,00001 ETH** (90.000.000
-di riserva di liquidita', 190.000.000 di supply totale, soft cap 50%, 1.000 ETH
-di raccolta a vendita esaurita) — fissati in `script/Deploy.s.sol`.
+Parametri del lancio: **supply totale 100.000.000 token esatti** a **0,00001 ETH**
+— 52.631.578,95 in vendita e 47.368.421,05 di riserva di liquidita' (la riserva
+e' il 90% del venduto, quindi la supply e' 19/10 del venduto), soft cap 50%,
+526,32 ETH di raccolta a vendita esaurita. Fissati in `script/Deploy.s.sol`.
 
 Obiettivo, meccanica per fasi, parametri e limiti dichiarati:
 **[docs/overview.md](docs/overview.md)**.

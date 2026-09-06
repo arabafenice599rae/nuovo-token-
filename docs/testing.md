@@ -99,9 +99,15 @@ Nessuna di queste e' un bug; sono comportamenti da conoscere.
    `_mint`, non `safeMint`: l'hook e' codice difensivo mai raggiunto in
    produzione. E' comunque testato direttamente.
 3. **Il dust ETH dopo il mint non e' trascurabile.** Con i parametri del lancio
-   (900 ETH di budget LP) restano ~0,99 ETH, cioe' lo 0,11%: la posizione e'
+   (473,68 ETH di budget LP) restano ~0,52 ETH, cioe' lo 0,11%: la posizione e'
    vincolata dal lato token e l'ETH avanzato viene spazzato a `feeRecipient`
    dentro `finalize()`.
+4. **L'ultimo frammento di token costa 1 wei in piu'.** Un wei compra 100.000
+   unita' minime di token e la quantita' in vendita non ne e' un multiplo: al
+   costo nominale arrotondato per difetto restano invendute frazioni di token e
+   la vendita non risulta esaurita. Serve 1 wei in piu' (il surplus viene
+   rimborsato da `buy()`). Vale anche per raggiungere esattamente il soft cap:
+   i due helper del fixture sono `_costOfAll()` e `_costOfAtLeast()`.
 
 ## Cosa manca
 

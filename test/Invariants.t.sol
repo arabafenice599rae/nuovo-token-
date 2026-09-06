@@ -203,7 +203,7 @@ contract InvariantsTest is SaleFixture {
     /// @dev Guardia anti-vacuita': le invarianti I9 e I12 valgono solo dopo il
     /// finalize, quindi va dimostrato che l'handler ci arriva davvero.
     function test_handlerReachesEveryPhase() public {
-        uint256 soldOutValue = _costOf(SALE_SUPPLY);
+        uint256 soldOutValue = _costOfAll();
 
         handler.buy(0, soldOutValue);
         assertEq(handler.buySuccess(), 1, "buy raggiungibile");
