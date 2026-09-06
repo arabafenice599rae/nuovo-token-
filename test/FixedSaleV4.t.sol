@@ -6,7 +6,9 @@ import {SaleFixture} from "./utils/SaleFixture.sol";
 import {PoolManager} from "@uniswap/v4-core/src/PoolManager.sol";
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
+import {SqrtPriceMath} from "@uniswap/v4-core/src/libraries/SqrtPriceMath.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiquidityTest.sol";
 import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -310,5 +312,32 @@ contract FixedSaleV4Test is SaleFixture {
         vm.prank(bob);
         vm.expectRevert(FixedSaleV4.NotPositionManager.selector);
         sale.onERC721Received(address(0), address(0), 1, "");
+    }
+
+    /// @dev I13: costo di saturazione dei bound. Con la liquidita' massima
+    /// piazzabile in un tick, spingere il prezzo oltre TICK_UPPER costa ordini
+    /// di grandezza piu' del vecchio full-range, che era attaccabile con dust.
+    function test_I13_tickSaturation_costs() public view {
+        uint128 maxL = uint128(type(uint128).max / 29_576);
+        int24 sp = 60;
+        int24 maxUsable = (887_272 / sp) * sp;
+        uint256 costOld = SqrtPriceMath.getAmount0Delta(
+            TickMath.getSqrtPriceAtTick(maxUsable - sp), TickMath.getSqrtPriceAtTick(maxUsable), maxL, true
+        );
+        uint256 costNew = SqrtPriceMath.getAmount0Delta(
+            TickMath.getSqrtPriceAtTick(sale.TICK_UPPER() - sp),
+            TickMath.getSqrtPriceAtTick(sale.TICK_UPPER()),
+            maxL,
+            true
+        );
+        uint256 costLowTok = SqrtPriceMath.getAmount1Delta(
+            TickMath.getSqrtPriceAtTick(sale.TICK_LOWER()),
+            TickMath.getSqrtPriceAtTick(sale.TICK_LOWER() + sp),
+            maxL,
+            true
+        );
+        assertLt(costOld, 1e13); // il vecchio full-range era attaccabile con dust
+        assertGt(costNew, 1e25); // TICK_UPPER: >10M ETH
+        assertGt(costLowTok, sale.MAX_TOTAL_SUPPLY() * 10); // TICK_LOWER: >10x supply
     }
 }

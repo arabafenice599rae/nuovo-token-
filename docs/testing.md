@@ -13,12 +13,27 @@ make test-nightly    # profilo ci: fuzz 20k run
 | File | Contenuto |
 | --- | --- |
 | `test/utils/SaleFixture.sol` | fixture condiviso: PoolManager e PositionManager **reali** (nessun mock), permit2 etchato dal bytecode precompilato, WETH solmate |
-| `test/FixedSaleV4.t.sol` | 12 test di percorso: lifecycle sold-out, refund sotto soft cap, refund post-grace (I11), surplus del buy, normalizzazione dopo free-move (H-1), traversata di liquidita' ostile (T3), raccolta fee senza toccare il principal (I9/T6), guardie di costruttore e ingressi, `testFuzz_buyAccounting` |
+| `test/FixedSaleV4.t.sol` | 13 test di percorso: lifecycle sold-out, refund sotto soft cap, refund post-grace (I11), surplus del buy, normalizzazione dopo free-move (H-1), traversata di liquidita' ostile (T3), raccolta fee senza toccare il principal (I9/T6), guardie di costruttore e ingressi, costo di saturazione dei tick (I13), `testFuzz_buyAccounting` |
 | `test/Invariants.t.sol` | handler della macchina a stati (buy / refund / claim / finalize / withdrawFees / sweepDust / warp) + invarianti I1-I5, I9, I12 |
 | `test/Dependencies.t.sol` | smoke test dei remapping verso `lib/` |
 
 Le invarianti girano di default a **1000 run x depth 150** (150.000 chiamate,
 ~49 s).
+
+## I13: costo di saturazione dei bound
+
+`test_I13_tickSaturation_costs` calcola, con la liquidita' massima piazzabile in
+un tick (`type(uint128).max / 29576`), quanto costa spingere il prezzo oltre i
+bound della posizione:
+
+| Bound | Costo per attraversare l'ultimo tick |
+| --- | --- |
+| vecchio full-range (`maxUsable`, spacing 60) | 1,88e12 wei — **~0,0000019 ETH**, cioe' dust |
+| `TICK_UPPER` = 251.340 | 1,21e26 wei — **~120 milioni di ETH**, l'ordine di grandezza dell'intera supply di ETH |
+| `TICK_LOWER` = -160.140 | 1,15e28 unita' di token — **11,5x `MAX_TOTAL_SUPPLY`** |
+
+E' la verifica numerica della tesi dell'header: il full-range era saturabile con
+dust, i bound scelti no.
 
 ## Copertura delle invarianti dichiarate
 
@@ -35,12 +50,27 @@ Le invarianti girano di default a **1000 run x depth 150** (150.000 chiamate,
 | I10 controparti immutabili | `test_constructorRejectsManagerMismatch` |
 | I11 liveness | `test_refundBelowSoftCap`, `test_refundAfterGraceAboveSoftCap` |
 | I12 conservazione della supply | `invariant_I12_supplyConservation` |
-| I13 tick insaturabili | **non verificata qui**: e' una proprieta' statica, servirebbe un test dedicato con `SqrtPriceMath` |
+| I13 tick insaturabili | `test_I13_tickSaturation_costs`, con `SqrtPriceMath` sui bound |
 
 Le invarianti I9 e I12 valgono solo dopo il finalize, quindi
 `test_handlerReachesEveryPhase` e `test_handlerReachesRefund` dimostrano che
 l'handler raggiunge davvero quegli stati: senza questa guardia le due invarianti
 passerebbero a vuoto.
+
+## I13: costo di saturazione dei bound
+
+`test_I13_tickSaturation_costs` calcola, con la liquidita' massima piazzabile in
+un tick (`type(uint128).max / 29576`), quanto costa spingere il prezzo oltre i
+bound della posizione:
+
+| Bound | Costo per attraversare l'ultimo tick |
+| --- | --- |
+| vecchio full-range (`maxUsable`, spacing 60) | 1,88e12 wei — **~0,0000019 ETH**, cioe' dust |
+| `TICK_UPPER` = 251.340 | 1,21e26 wei — **~120 milioni di ETH**, l'ordine di grandezza dell'intera supply di ETH |
+| `TICK_LOWER` = -160.140 | 1,15e28 unita' di token — **11,5x `MAX_TOTAL_SUPPLY`** |
+
+E' la verifica numerica della tesi dell'header: il full-range era saturabile con
+dust, i bound scelti no.
 
 ## Copertura
 
@@ -74,7 +104,8 @@ Nessuna di queste e' un bug; sono comportamenti da conoscere.
 
 ## Cosa manca
 
-La suite di integrazione **REV7.t.sol citata nell'header del contratto non e' mai
-stata consegnata in questo repo**: i test qui presenti sono stati scritti da
+Tutte le invarianti I1-I13 dichiarate nell'header hanno ora una verifica.
+La suite di integrazione **REV7.t.sol citata nell'header del contratto non e'
+mai stata consegnata in questo repo**: i test qui presenti sono stati scritti da
 zero. Se la porti, i due file convivono senza conflitti (nomi di contratto
 diversi); il fixture in `test/utils/SaleFixture.sol` e' riusabile.

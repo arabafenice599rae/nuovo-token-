@@ -83,8 +83,8 @@ dalla CI.
 - L'analisi statica non verifica le invarianti I1-I13 dichiarate nell'header del
   contratto: sono proprieta' di logica economica e di sequenza, fuori dalla
   portata di slither e aderyn. Per quelle c'e' la suite descritta in
-  [testing.md](testing.md) (I1-I5, I9, I12 come invarianti con handler; I7/I8 e
-  I11 come test di percorso; I13 ancora scoperta).
+  [testing.md](testing.md) (I1-I5, I9, I12 come invarianti con handler; I7/I8,
+  I10, I11 e I13 come test di percorso).
 - La suite di integrazione REV7 citata nell'header del contratto non e' mai
   stata consegnata in questo repo: i test presenti sono stati scritti da zero.
 - Il codice upstream in `lib/` e' escluso dall'analisi per scelta
