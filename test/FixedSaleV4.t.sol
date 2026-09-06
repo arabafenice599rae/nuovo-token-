@@ -340,4 +340,25 @@ contract FixedSaleV4Test is SaleFixture {
         assertGt(costNew, 1e25); // TICK_UPPER: >10M ETH
         assertGt(costLowTok, sale.MAX_TOTAL_SUPPLY() * 10); // TICK_LOWER: >10x supply
     }
+
+    /// @dev Scenario soft cap dell'esempio in docs/overview.md: venduto il 50%,
+    /// nel pool entra la liquidita' che l'ETH raccolto sostiene al prezzo di
+    /// listing e tutto il resto — riserva avanzata e invenduto — viene bruciato.
+    function test_softCapFinalizeBurnsUnsoldAndSurplus() public {
+        uint256 sold = SALE_SUPPLY / 2;
+
+        vm.prank(alice);
+        sale.buy{value: _costOf(sold)}();
+
+        vm.warp(block.timestamp + SALE_DURATION);
+        sale.finalize();
+
+        // escrow: esattamente i token dovuti agli acquirenti
+        assertEq(token.balanceOf(address(sale)), sold, "escrow == venduto");
+        // supply finale = venduto + token effettivamente nel pool (~450k)
+        uint256 inPool = token.balanceOf(address(poolManager));
+        assertEq(token.totalSupply(), sold + inPool, "supply == escrow + LP");
+        assertApproxEqRel(inPool, SALE_SUPPLY * 45 / 100, 0.01e18, "~450k token nel pool");
+        assertApproxEqRel(token.totalSupply(), SALE_SUPPLY * 95 / 100, 0.01e18, "~950k supply finale");
+    }
 }

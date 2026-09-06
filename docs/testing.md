@@ -13,7 +13,7 @@ make test-nightly    # profilo ci: fuzz 20k run
 | File | Contenuto |
 | --- | --- |
 | `test/utils/SaleFixture.sol` | fixture condiviso: PoolManager e PositionManager **reali** (nessun mock), permit2 etchato dal bytecode precompilato, WETH solmate |
-| `test/FixedSaleV4.t.sol` | 13 test di percorso: lifecycle sold-out, refund sotto soft cap, refund post-grace (I11), surplus del buy, normalizzazione dopo free-move (H-1), traversata di liquidita' ostile (T3), raccolta fee senza toccare il principal (I9/T6), guardie di costruttore e ingressi, costo di saturazione dei tick (I13), `testFuzz_buyAccounting` |
+| `test/FixedSaleV4.t.sol` | 14 test di percorso: lifecycle sold-out, refund sotto soft cap, refund post-grace (I11), surplus del buy, normalizzazione dopo free-move (H-1), traversata di liquidita' ostile (T3), raccolta fee senza toccare il principal (I9/T6), guardie di costruttore e ingressi, chiusura sotto soft cap con burn di riserva e invenduto, costo di saturazione dei tick (I13), `testFuzz_buyAccounting` |
 | `test/Invariants.t.sol` | handler della macchina a stati (buy / refund / claim / finalize / withdrawFees / sweepDust / warp) + invarianti I1-I5, I9, I12 |
 | `test/Dependencies.t.sol` | smoke test dei remapping verso `lib/` |
 

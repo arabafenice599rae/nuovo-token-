@@ -1,10 +1,26 @@
 # nuovo-token-
 
-`FixedSaleV4`: vendita a prezzo fisso di un ERC-20 con migrazione permissionless
-della liquidita' su Uniswap v4 (posizione bounded mintata via PositionManager,
-raccolta perpetua delle swap fee). Nessun owner, nessun admin, nessun upgrade.
+Lancio di un token ERC-20 in cui **la creazione del mercato e' parte del
+contratto, non una promessa del team**: si vende a prezzo fisso e, appena la
+raccolta chiude con successo, ricavato e riserva finiscono automaticamente in un
+pool Uniswap v4 allo stesso prezzo, con la posizione di liquidita' trattenuta
+per sempre dal contratto.
 
-Progetto Foundry con analisi statica (Slither + Aderyn) integrata in CI.
+- prezzo di vendita e prezzo di apertura del mercato **coincidono**, e la
+  migrazione reverte se il pool non e' esattamente al prezzo di listing
+- la liquidita' **non e' ritirabile**: nessuna funzione trasferisce l'NFT della
+  posizione ne' rimuove liquidita'
+- **nessuna allocazione al team e nessun mint**: la supply e' solo vendita +
+  liquidita', e cio' che avanza viene bruciato
+- se il lancio fallisce, ogni acquirente **rientra del 100% dell'ETH versato**,
+  commissione inclusa
+- **nessun owner, nessun admin, nessuna pausa, nessun upgrade**
+
+Obiettivo, meccanica per fasi, parametri e limiti dichiarati:
+**[docs/overview.md](docs/overview.md)**.
+
+Progetto Foundry con analisi statica (Slither + Aderyn) e suite di invarianti
+integrate in CI.
 
 ## Requisiti
 
@@ -46,7 +62,7 @@ src/            contratti (FixedSaleV4.sol)
 test/           test di percorso, invarianti con handler, fixture condiviso
 lib/            dipendenze (submodule pinnati)
 tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
-docs/           documentazione (dipendenze, static analysis, findings, test)
+docs/           overview del lancio, dipendenze, static analysis, findings, test
 foundry.toml    profili di compilazione (default / ci / lite)
 remappings.txt  remapping degli import verso lib/
 slither.config.json, aderyn.toml   configurazione dell'analisi statica
