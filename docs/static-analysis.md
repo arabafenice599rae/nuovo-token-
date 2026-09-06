@@ -10,7 +10,8 @@ usati in CI (`.github/workflows/ci.yml`):
 | Aderyn | 0.6.8 | `aderyn.toml` | `make aderyn` |
 
 `make analyze` esegue build + Slither + Aderyn; `make ci` riproduce l'intera
-pipeline di CI (formattazione, build, test con profilo `ci`, analisi).
+pipeline di CI su pull request (formattazione, build, test, analisi); il
+fuzzing esteso gira di notte con `make test-nightly`.
 
 ## Installazione
 
@@ -41,11 +42,16 @@ Verifica: `make versions`.
 - `ast = true`, `build_info = true`: Slither e Aderyn leggono gli artefatti
   prodotti da `forge build`; senza AST e build-info non riescono a mappare i
   finding sul sorgente.
-- `deny = "warnings"`: i warning di compilatore e linter fanno fallire la build.
+- `deny = "warnings"`: i warning del compilatore fanno fallire la build.
+  `forge lint`, invece, non blocca (`lint_on_build = false`): gira come step
+  informativo in CI e con `make lint`. Motivo in docs/findings.md.
   Il profilo `lite` (`FOUNDRY_PROFILE=lite forge build`) li tollera per le
   iterazioni veloci in locale, ma non va usato per l'analisi.
 - `bytecode_hash = "none"` e `cbor_metadata = false`: bytecode riproducibile.
-- Profilo `ci`: fuzzing a 10.000 run e invarianti a 1.000 run / depth 64.
+- Profilo default: fuzzing a 2.000 run, invarianti a 1.000 run / depth 150.
+- Profilo `ci`: fuzzing a 20.000 run per la campagna notturna
+  (`.github/workflows/nightly.yml`, `make test-nightly`); le invarianti
+  ereditano i valori del profilo default.
 
 ### Slither (`slither.config.json`)
 
@@ -79,9 +85,10 @@ Verifica: `make versions`.
    - Aderyn: `exclude` sotto `[detectors]` in `aderyn.toml`.
    In entrambi i casi la motivazione va scritta accanto all'esclusione.
 4. Le esclusioni sono decisioni di sicurezza: vanno riviste in code review come
-   il resto del diff.
+   il resto del diff, e vanno registrate in
+   [findings.md](findings.md) insieme al motivo.
 
 ## Limiti
 
 Slither e Aderyn trovano pattern noti, non logica di business sbagliata. Non
-sostituiscono test, invarianti (`forge test` con profilo `ci`) e review manuale.
+sostituiscono test, invarianti e review manuale.

@@ -1,7 +1,31 @@
 # nuovo-token-
 
-Progetto Foundry con analisi statica (Slither + Aderyn) configurata e integrata
-in CI.
+Lancio di un token ERC-20 in cui **la creazione del mercato e' parte del
+contratto, non una promessa del team**: si vende a prezzo fisso e, appena la
+raccolta chiude con successo, ricavato e riserva finiscono automaticamente in un
+pool Uniswap v4 allo stesso prezzo, con la posizione di liquidita' trattenuta
+per sempre dal contratto.
+
+- prezzo di vendita e prezzo di apertura del mercato **coincidono**, e la
+  migrazione reverte se il pool non e' esattamente al prezzo di listing
+- la liquidita' **non e' ritirabile**: nessuna funzione trasferisce l'NFT della
+  posizione ne' rimuove liquidita'
+- **nessuna allocazione al team e nessun mint**: la supply e' solo vendita +
+  liquidita', e cio' che avanza viene bruciato
+- se il lancio fallisce, ogni acquirente **rientra del 100% dell'ETH versato**,
+  commissione inclusa
+- **nessun owner, nessun admin, nessuna pausa, nessun upgrade**
+
+Parametri del lancio: **supply totale 100.000.000 token esatti** a **0,00001 ETH**
+— 52.631.578,95 in vendita e 47.368.421,05 di riserva di liquidita' (la riserva
+e' il 90% del venduto, quindi la supply e' 19/10 del venduto), soft cap 50%,
+526,32 ETH di raccolta a vendita esaurita. Fissati in `script/Deploy.s.sol`.
+
+Obiettivo, meccanica per fasi, parametri e limiti dichiarati:
+**[docs/overview.md](docs/overview.md)**.
+
+Progetto Foundry con analisi statica (Slither + Aderyn) e suite di invarianti
+integrate in CI.
 
 ## Requisiti
 
@@ -11,13 +35,27 @@ in CI.
 
 Comandi di installazione in [docs/static-analysis.md](docs/static-analysis.md).
 
+## Dipendenze
+
+Uniswap v4 (core + periphery), Permit2, OpenZeppelin, forge-std e solmate sono
+submodule in `lib/`, pinnati a commit esatti: vedi
+[docs/dependencies.md](docs/dependencies.md).
+
+```bash
+make install     # inizializza i submodule ai commit pinnati
+make deps-check  # verifica i pin
+```
+
 ## Uso
 
 ```bash
-make install     # git submodules (lib/forge-std)
+make install     # dipendenze pinnate in lib/
 make build       # forge build --sizes
 make test        # forge test -vvv
+make invariant   # solo le invarianti (I1-I5, I9, I12)
+make coverage    # copertura
 make analyze     # build + slither + aderyn
+make test-nightly # fuzzing esteso (profilo ci, 20k run)
 make ci          # riproduce in locale la pipeline di CI
 make help        # elenco completo dei target
 ```
@@ -25,22 +63,37 @@ make help        # elenco completo dei target
 ## Struttura
 
 ```
-src/            contratti
-test/           test Foundry
-script/         script di deploy
-tools/          gate per la CI (aderyn-gate.sh)
-docs/           documentazione (setup e triage della static analysis)
+src/            contratti (FixedSaleV4.sol)
+script/         script di deploy con i parametri del lancio
+test/           test di percorso, invarianti con handler, fixture condiviso
+lib/            dipendenze (submodule pinnati)
+tools/          script per la CI (aderyn-gate.sh, check-deps.sh)
+docs/           overview del lancio, dipendenze, static analysis, findings, test
 foundry.toml    profili di compilazione (default / ci / lite)
+remappings.txt  remapping degli import verso lib/
 slither.config.json, aderyn.toml   configurazione dell'analisi statica
 ```
 
-`src/Counter.sol` e' lo scaffold generato da `forge init`: e' un segnaposto che
-serve solo a tenere verde la pipeline finche' non arriva il contratto del token.
+## Contratti
+
+- `src/FixedSaleV4.sol` — `LaunchToken` (ERC-20 + burn, nessuna tax, nessun mint
+  post-deploy) e `FixedSaleV4` (vendita, migrazione, claim/refund, fee).
+
+Il triage completo dei finding di analisi statica, con le soppressioni attive e
+i loro motivi, e' in [docs/findings.md](docs/findings.md); la suite di test e la
+copertura delle invarianti I1-I13 sono descritte in
+[docs/testing.md](docs/testing.md).
+
+Il contratto viene compilato **con via-ir** (`foundry.toml`), per parita' con il
+bytecode verificato; il profilo `lite` disattiva via-ir per le iterazioni veloci.
 
 ## CI
 
 `.github/workflows/ci.yml` esegue tre job su ogni push e pull request:
 
-- **Build & test** — `forge fmt --check`, `forge build --sizes`, test con profilo `ci`
+- **Build & test** — `forge fmt --check`, `forge build --sizes`, `forge test` (profilo default: 2k run di fuzzing, invarianti 1000 x depth 150)
 - **Slither** — fallisce dai finding di impatto medium in su
 - **Aderyn** — fallisce sui finding High, report pubblicato come artifact
+
+`.github/workflows/nightly.yml` gira ogni notte alle 03:00 UTC (o a mano da
+Actions) con il profilo `ci`: 20.000 run di fuzzing. In locale: `make test-nightly`.

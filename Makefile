@@ -13,8 +13,13 @@ help: ## Mostra i target disponibili
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: install
-install: ## Scarica le dipendenze (git submodules in lib/)
-	git submodule update --init --recursive
+install: ## Scarica le dipendenze pinnate in lib/ (+ solmate dentro v4-core)
+	git submodule update --init lib/forge-std lib/v4-core lib/v4-periphery lib/permit2 lib/openzeppelin-contracts
+	git -C lib/v4-core submodule update --init lib/solmate
+
+.PHONY: deps-check
+deps-check: ## Verifica che le dipendenze siano ai commit pinnati
+	./tools/check-deps.sh
 
 .PHONY: build
 build: ## Compila i contratti (solc pinnato in foundry.toml)
@@ -24,9 +29,17 @@ build: ## Compila i contratti (solc pinnato in foundry.toml)
 test: ## Esegue i test
 	forge test -vvv
 
-.PHONY: test-ci
-test-ci: ## Esegue i test con il profilo CI (fuzzing esteso)
+.PHONY: test-nightly
+test-nightly: ## Campagna notturna: profilo ci, 20k run di fuzzing
 	FOUNDRY_PROFILE=ci forge test -vvv
+
+.PHONY: invariant
+invariant: ## Esegue solo le invarianti
+	forge test --match-contract Invariants -vv
+
+.PHONY: coverage
+coverage: ## Report di copertura
+	forge coverage --report summary
 
 .PHONY: snapshot
 snapshot: ## Aggiorna lo snapshot del gas
@@ -59,7 +72,7 @@ aderyn: $(REPORTS_DIR) ## Analisi statica con Aderyn (config: aderyn.toml)
 analyze: build slither aderyn ## Esegue tutta la static analysis
 
 .PHONY: ci
-ci: fmt-check build test-ci analyze ## Riproduce in locale la pipeline di CI
+ci: fmt-check build test analyze ## Riproduce in locale la pipeline di CI
 
 .PHONY: versions
 versions: ## Stampa le versioni dei tool installati

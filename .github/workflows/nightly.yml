@@ -1,0 +1,38 @@
+name: Nightly
+
+permissions: {}
+
+on:
+  schedule:
+    # 03:00 UTC, ogni notte
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+env:
+  FOUNDRY_VERSION: "1.8.1"
+
+jobs:
+  fuzz:
+    name: Fuzzing esteso
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v${{ env.FOUNDRY_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          make install
+          make deps-check
+
+      - name: Test (profilo ci)
+        run: FOUNDRY_PROFILE=ci forge test -vvv

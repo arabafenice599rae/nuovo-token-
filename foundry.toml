@@ -12,7 +12,8 @@ evm_version = "cancun"
 
 optimizer = true
 optimizer_runs = 200
-via_ir = false
+# via-ir: parita' con il bytecode verificato/testato di FixedSaleV4
+via_ir = true
 
 # Metadati deterministici: bytecode riproducibile tra macchine diverse
 bytecode_hash = "none"
@@ -25,28 +26,28 @@ extra_output = ["storageLayout"]
 
 # I warning del compilatore (e del linter) sono errori: la static analysis parte da un build pulito
 deny = "warnings"
+# ...ma non quelli provenienti dalle dipendenze in lib/
+ignored_warnings_from = ["lib"]
 
 fs_permissions = [{ access = "read", path = "./out" }]
 
 [profile.default.fuzz]
-runs = 256
+runs = 2000
 
 [profile.default.invariant]
-runs = 256
-depth = 32
+runs = 1000
+depth = 150
 fail_on_revert = false
 
-# Profilo CI: più giri di fuzzing, stessa configurazione di compilazione
+# Profilo CI: campagna notturna (workflow nightly.yml).
+# Le invarianti ereditano il profilo default: 1000 run x depth 150.
 [profile.ci.fuzz]
-runs = 10_000
-
-[profile.ci.invariant]
-runs = 1_000
-depth = 64
+runs = 20000
 
 # Profilo "lite": build veloce in locale, non usarlo per l'analisi
 [profile.lite]
 optimizer = false
+via_ir = false
 deny = "never"
 
 [doc]
@@ -63,4 +64,7 @@ number_underscore = "thousands"
 sort_imports = true
 
 [lint]
-lint_on_build = true
+# forge lint gira come step informativo (`make lint`, job dedicato in CI) e non
+# blocca la build: i gate di sicurezza sono slither e aderyn, che hanno triage
+# per singolo finding. Vedi docs/findings.md.
+lint_on_build = false
