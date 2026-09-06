@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!--
   The page loads nothing from the network: no CDN, no fonts, no analytics.
   connect-src 'none' means the page itself cannot open a connection; every chain
@@ -18,75 +18,93 @@
 <noscript><p class="notice">This page needs JavaScript to read the sale contract.</p></noscript>
 
 <main id="app" hidden>
-  <header>
-    <h1>Token sale</h1>
-    <p class="lede">Fixed price. Proceeds and reserve migrate into a Uniswap v4 pool at the same price, permissionlessly.</p>
-  </header>
 
-  <section class="panel" aria-labelledby="contract-h">
-    <h2 id="contract-h">Contract</h2>
-    <dl class="kv">
-      <dt>Sale</dt><dd><a id="sale-link" href="#" rel="noopener noreferrer" target="_blank"><code id="sale-addr">—</code></a></dd>
-      <dt>Token</dt><dd><a id="token-link" href="#" rel="noopener noreferrer" target="_blank"><code id="token-addr">—</code></a></dd>
-      <dt>Network</dt><dd id="network">—</dd>
-      <dt>Price</dt><dd id="price">—</dd>
-    </dl>
-    <p class="hint">Check this address against a source you trust before sending anything. The sale takes native ETH: it never asks for a token approval.</p>
+  <div class="topbar">
+    <p class="crumb"><span id="crumb-contract">FIXEDSALEV4</span> / UNISWAP V4</p>
+    <button id="connect" type="button" class="pill">Connect</button>
+  </div>
+
+  <section class="hero">
+    <h1 id="symbol">TOKEN</h1>
+    <p id="token-name" class="sub">—</p>
   </section>
 
-  <section class="panel" aria-labelledby="state-h">
-    <h2 id="state-h">Sale</h2>
-    <p id="phase" class="phase" data-tone="closed">Reading the contract…</p>
+  <section class="hero-price">
+    <p class="label">Price</p>
+    <p class="figure"><span id="price">—</span> <span class="unit" id="price-unit">per token</span></p>
+  </section>
+
+  <section class="card card-quiet" aria-labelledby="sold-label">
     <div class="meter" role="img" aria-label="Tokens sold" id="meter">
       <div class="meter-fill" id="meter-fill"></div>
-      <div class="meter-cap" id="meter-cap" title="Soft cap"></div>
     </div>
-    <dl class="kv">
-      <dt>Sold</dt><dd id="sold">—</dd>
-      <dt>Soft cap</dt><dd id="softcap">—</dd>
-      <dt>Closes</dt><dd id="deadline">—</dd>
-    </dl>
-  </section>
-
-  <section class="panel" aria-labelledby="you-h">
-    <h2 id="you-h">Your position</h2>
-    <dl class="kv">
-      <dt>Wallet</dt><dd id="account">not connected</dd>
-      <dt>Bought</dt><dd id="purchased">—</dd>
-      <dt>Paid</dt><dd id="contributed">—</dd>
-    </dl>
-    <div class="actions">
-      <button id="connect" type="button">Connect wallet</button>
-      <button id="refresh" type="button">Refresh</button>
+    <div class="row">
+      <div class="cell">
+        <p class="label" id="sold-label">Sold</p>
+        <p class="value"><span id="sold">—</span><span class="of" id="supply"></span></p>
+      </div>
+      <p class="pct" id="pct">—</p>
     </div>
-  </section>
-
-  <section class="panel" aria-labelledby="buy-h">
-    <h2 id="buy-h">Buy</h2>
-    <div class="field">
-      <label for="amount">Amount in ETH</label>
-      <div class="field-row">
-        <input id="amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0">
-        <button id="max" type="button" title="Exactly what is left, plus the one wei the last fraction needs">Max</button>
+    <div class="rule"></div>
+    <div class="row">
+      <div class="cell">
+        <p class="label">Soft cap</p>
+        <p class="value mono" id="softcap">—</p>
+      </div>
+      <div class="cell right">
+        <p class="label">Ends in</p>
+        <p class="value mono" id="countdown">—</p>
       </div>
     </div>
-    <dl class="kv" id="quote-box">
-      <dt>You receive</dt><dd id="q-tokens">—</dd>
-      <dt>Of which fee</dt><dd id="q-fee">—</dd>
-    </dl>
-    <p class="hint" id="quote-note"></p>
-    <div class="actions">
-      <button id="buy" type="button" class="primary" disabled>Buy</button>
-      <button id="claim" type="button" disabled>Claim tokens</button>
-      <button id="refund" type="button" disabled>Refund</button>
-    </div>
   </section>
 
-  <p id="status" class="status" role="status" aria-live="polite"></p>
+  <section class="card" aria-labelledby="pay-label">
+    <div class="row tight">
+      <p class="label" id="pay-label">You pay</p>
+      <button id="max" type="button" class="chip">Max</button>
+    </div>
+    <div class="tile">
+      <input id="amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0" aria-label="Amount in ETH">
+      <span class="tile-unit">ETH</span>
+    </div>
+
+    <div class="swap" aria-hidden="true"><span>↓</span></div>
+
+    <p class="label">You receive</p>
+    <div class="tile">
+      <output id="tokens-out" class="tile-out">0</output>
+      <span class="tile-unit" id="tokens-unit">TOKEN</span>
+    </div>
+
+    <div class="row foot">
+      <p class="mono muted" id="fee-note">—</p>
+      <p class="mono muted" id="pool-note"></p>
+    </div>
+
+    <button id="buy" type="button" class="cta" disabled>Connect to Buy</button>
+    <p id="status" class="status mono" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="tiles" aria-label="Your actions">
+    <button id="claim" type="button" class="mini" disabled>
+      <span class="mini-title">Claim</span>
+      <span class="mini-value mono" id="claim-value">—</span>
+    </button>
+    <button id="refund" type="button" class="mini" disabled>
+      <span class="mini-title">Refund</span>
+      <span class="mini-value mono" id="refund-value">—</span>
+    </button>
+    <button id="finalize" type="button" class="mini" disabled>
+      <span class="mini-title">Finalize</span>
+      <span class="mini-value mono" id="finalize-value">—</span>
+    </button>
+  </section>
 
   <footer>
-    <p>This page holds no keys, stores nothing, and makes no network requests of its own — every read and every transaction goes through your wallet. Source: <code>frontend/</code> in the project repository.</p>
+    <p class="mono">Sale <a id="sale-link" href="#" rel="noopener noreferrer" target="_blank"><span id="sale-addr">—</span></a> · Finalized <span id="finalized-flag">—</span> · <span id="network">—</span></p>
+    <p class="mono muted">Check the address against a source you trust. This page holds no keys and makes no network requests of its own: every read and every transaction goes through your wallet. The sale takes native ETH and never asks for a token approval.</p>
   </footer>
+
 </main>
 
 <div id="blocked" class="notice" hidden>
