@@ -112,6 +112,20 @@ Closing at the soft cap (50%): about 263 ETH raised, 237 ETH into the pool with
 scenarios are covered by `test_soldOutLifecycle` and
 `test_softCapFinalizeBurnsUnsoldAndSurplus`.
 
+**What the soft cap costs the market.** The price is the same either way, the
+depth is not: closing at the soft cap opens the pool with half the liquidity, so
+every trade moves the price about twice as far. Measured on a 5 ETH buy against
+the fresh position:
+
+| Close | Position liquidity | Price impact of a 5 ETH buy |
+| --- | --- | --- |
+| Sold out | 149,792 | 2.07% |
+| Soft cap (50%) | 74,979 | 4.07% |
+
+Buying at launch into a sale that closed at the soft cap therefore costs roughly
+twice the slippage of one that sold out. `test_softCapOpensWithHalfTheDepth`
+keeps that relation honest.
+
 One rounding detail: a single wei of ETH buys 100,000 minimal token units, and
 the amount on sale is not a multiple of that block. Selling out therefore takes
 **one wei more** than the nominal cost; the surplus is refunded by `buy()`

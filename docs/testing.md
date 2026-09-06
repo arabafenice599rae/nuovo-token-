@@ -13,7 +13,7 @@ make test-nightly    # ci profile: 20k fuzz runs
 | File | Contents |
 | --- | --- |
 | `test/utils/SaleFixture.sol` | shared fixture: **real** PoolManager and PositionManager (no mocks), permit2 etched from its precompiled bytecode, solmate WETH |
-| `test/FixedSaleV4.t.sol` | 14 path tests: sold-out lifecycle, refund below soft cap, refund after grace (I11), buy surplus, normalisation after a free move (H-1), crossing hostile liquidity (T3), fee collection leaving the principal untouched (I9/T6), soft-cap close burning reserve and unsold supply, tick saturation cost (I13), constructor and entry guards, `testFuzz_buyAccounting` |
+| `test/FixedSaleV4.t.sol` | 16 path tests: sold-out lifecycle, refund below soft cap, refund after grace (I11), buy surplus, normalisation after a free move (H-1), crossing hostile liquidity (T3), fee collection leaving the principal untouched (I9/T6), soft-cap close burning reserve and unsold supply, tick saturation cost (I13), constructor and entry guards, `testFuzz_buyAccounting` |
 | `test/Invariants.t.sol` | state-machine handler (buy / refund / claim / finalize / withdrawFees / sweepDust / warp) plus invariants I1–I5, I9, I12 |
 | `test/Dependencies.t.sol` | smoke test for the remappings into `lib/` |
 
@@ -91,6 +91,19 @@ None of these is a bug; they are things to know.
    never reads as sold out. One extra wei closes it (the surplus is refunded by
    `buy()`). The same applies to hitting the soft cap exactly; the fixture
    exposes `_costOfAll()` and `_costOfAtLeast()` for this.
+
+## Figures the documentation quotes
+
+Two tests exist so the documentation cannot drift from the contract:
+
+- `test_deployParametersMatchTheDocumentedFigures` asserts every number the
+  README and the overview state about the deploy — sale supply, reserve, the
+  **exact** 100,000,000 total, soft cap, price, the 526.32 ETH raise, and the
+  opening tick 115,135 with its sqrt price. A hand-copied figure that goes stale
+  now fails the build.
+- `test_softCapOpensWithHalfTheDepth` asserts that a soft-cap close opens the
+  pool with half the liquidity of a sold-out one, which is what makes the
+  slippage statement in the overview true.
 
 ## What is missing
 

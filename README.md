@@ -52,6 +52,8 @@ flowchart TD
 | Raised at full sale | 526.32 ETH → 52.63 fee + 473.68 into the pool |
 | Pool opening price | 0.00001 ETH (tick 115,135) |
 
+Every figure in that table is asserted by `test_deployParametersMatchTheDocumentedFigures`, so it cannot drift from the contract.
+
 The reserve is 90% of what is sold, so the minted supply is 19/10 of the sale
 supply — an exact 100,000,000 total means selling 100M × 10/19. Parameters live
 in [`script/Deploy.s.sol`](script/Deploy.s.sol); PoolManager and PositionManager
@@ -157,6 +159,7 @@ remappings.txt  import remappings into lib/
 | [findings.md](docs/findings.md) | static-analysis triage and active suppressions |
 | [static-analysis.md](docs/static-analysis.md) | tool setup and triage workflow |
 | [branch-protection.md](docs/branch-protection.md) | the `main` ruleset and how to apply it |
+| [deployment.md](docs/deployment.md) | pre-deploy checklist: addresses, testnet rehearsal, verification, frontend |
 | [frontend/README.md](frontend/README.md) | frontend security model and deployment |
 
 ## Security
