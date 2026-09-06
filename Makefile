@@ -21,6 +21,14 @@ install: ## Fetch the pinned dependencies in lib/ (+ solmate inside v4-core)
 deps-check: ## Assert every dependency sits at its pinned commit
 	./tools/check-deps.sh
 
+.PHONY: check-selectors
+check-selectors: ## Assert the frontend selectors match the contract
+	./tools/check-selectors.sh
+
+.PHONY: serve
+serve: ## Serve the frontend locally on :8080
+	python3 -m http.server -d frontend 8080
+
 .PHONY: build
 build: ## Compile the contracts (solc pinned in foundry.toml)
 	forge build --sizes
@@ -72,7 +80,7 @@ aderyn: $(REPORTS_DIR) ## Static analysis with Aderyn (config: aderyn.toml)
 analyze: build slither aderyn ## Run the whole static-analysis pass
 
 .PHONY: ci
-ci: fmt-check build test analyze ## Reproduce the CI pipeline locally
+ci: fmt-check build test analyze check-selectors ## Reproduce the CI pipeline locally
 
 .PHONY: versions
 versions: ## Print the installed tool versions

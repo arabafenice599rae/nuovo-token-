@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  The page loads nothing from the network: no CDN, no fonts, no analytics.
+  connect-src 'none' means the page itself cannot open a connection; every chain
+  read and write goes through the wallet's injected provider.
+  frame-ancestors is ignored in a meta tag — serve the header too, see README.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Token sale</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<noscript><p class="notice">This page needs JavaScript to read the sale contract.</p></noscript>
+
+<main id="app" hidden>
+  <header>
+    <h1>Token sale</h1>
+    <p class="lede">Fixed price. Proceeds and reserve migrate into a Uniswap v4 pool at the same price, permissionlessly.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="contract-h">
+    <h2 id="contract-h">Contract</h2>
+    <dl class="kv">
+      <dt>Sale</dt><dd><a id="sale-link" href="#" rel="noopener noreferrer" target="_blank"><code id="sale-addr">—</code></a></dd>
+      <dt>Token</dt><dd><a id="token-link" href="#" rel="noopener noreferrer" target="_blank"><code id="token-addr">—</code></a></dd>
+      <dt>Network</dt><dd id="network">—</dd>
+      <dt>Price</dt><dd id="price">—</dd>
+    </dl>
+    <p class="hint">Check this address against a source you trust before sending anything. The sale takes native ETH: it never asks for a token approval.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="state-h">
+    <h2 id="state-h">Sale</h2>
+    <p id="phase" class="phase">—</p>
+    <div class="meter" role="img" aria-label="Tokens sold" id="meter">
+      <div class="meter-fill" id="meter-fill"></div>
+      <div class="meter-cap" id="meter-cap" title="Soft cap"></div>
+    </div>
+    <dl class="kv">
+      <dt>Sold</dt><dd id="sold">—</dd>
+      <dt>Soft cap</dt><dd id="softcap">—</dd>
+      <dt>Closes</dt><dd id="deadline">—</dd>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="you-h">
+    <h2 id="you-h">Your position</h2>
+    <dl class="kv">
+      <dt>Wallet</dt><dd id="account">not connected</dd>
+      <dt>Bought</dt><dd id="purchased">—</dd>
+      <dt>Paid</dt><dd id="contributed">—</dd>
+    </dl>
+    <div class="actions">
+      <button id="connect" type="button">Connect wallet</button>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="buy-h">
+    <h2 id="buy-h">Buy</h2>
+    <div class="field">
+      <label for="amount">Amount in ETH</label>
+      <div class="field-row">
+        <input id="amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.0">
+        <button id="max" type="button" title="Exactly what is left, plus the one wei the last fraction needs">Max</button>
+      </div>
+    </div>
+    <dl class="kv" id="quote-box">
+      <dt>You receive</dt><dd id="q-tokens">—</dd>
+      <dt>Of which fee</dt><dd id="q-fee">—</dd>
+    </dl>
+    <p class="hint" id="quote-note"></p>
+    <div class="actions">
+      <button id="buy" type="button" class="primary" disabled>Buy</button>
+      <button id="claim" type="button" disabled>Claim tokens</button>
+      <button id="refund" type="button" disabled>Refund</button>
+    </div>
+  </section>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <footer>
+    <p>This page holds no keys, stores nothing, and makes no network requests of its own — every read and every transaction goes through your wallet. Source: <code>frontend/</code> in the project repository.</p>
+  </footer>
+</main>
+
+<div id="blocked" class="notice" hidden>
+  <p>This page refuses to run inside a frame. Open it directly.</p>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

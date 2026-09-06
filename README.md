@@ -1,26 +1,48 @@
+<div align="center">
+
 # FixedSaleV4
 
 **A token launch where the market is created by the contract, not promised by the team.**
 
-Tokens are sold at a fixed price and, the moment the sale closes successfully,
-the proceeds and the liquidity reserve are moved into a Uniswap v4 pool at that
-same price — with the liquidity position held by the contract forever.
+[![CI](https://github.com/arabafenice599rae/nuovo-token-/actions/workflows/ci.yml/badge.svg)](https://github.com/arabafenice599rae/nuovo-token-/actions/workflows/ci.yml)
+[![Nightly](https://github.com/arabafenice599rae/nuovo-token-/actions/workflows/nightly.yml/badge.svg)](https://github.com/arabafenice599rae/nuovo-token-/actions/workflows/nightly.yml)
+![Solidity 0.8.26](https://img.shields.io/badge/solidity-0.8.26-2b2b2b)
+![Foundry](https://img.shields.io/badge/built%20with-foundry-1b5e4b)
+![Uniswap v4](https://img.shields.io/badge/uniswap-v4-1b5e4b)
 
-- Sale price and market opening price **are the same number**, and the migration
-  reverts if the pool is not exactly at the listing price
-- Liquidity **cannot be pulled**: no function transfers the position NFT or
-  decreases liquidity
-- **No team allocation, no mint function**: supply is sale + liquidity, and
-  whatever is left over is burned
-- If the launch fails, every buyer gets **100% of their ETH back**, fee included
-- **No owner, no admin, no pause, no upgrade**
+</div>
 
-Objective, phase-by-phase mechanics, figures and stated limits:
-**[docs/overview.md](docs/overview.md)**.
+Tokens are sold at a fixed price. The moment the sale closes successfully, the
+proceeds and the liquidity reserve move into a Uniswap v4 pool **at that same
+price**, and the liquidity position stays with the contract forever.
+
+|  |  |
+| --- | --- |
+| Sale price = market opening price | the migration reverts if the pool is not exactly at the listing price |
+| Liquidity cannot be pulled | no function transfers the position NFT or decreases liquidity |
+| No team allocation, no mint | supply is sale + liquidity; whatever is left over is burned |
+| A failed launch returns everything | 100% of the ETH paid, fee included |
+| No owner, admin, pause or upgrade | there is no privileged role to compromise |
+
+→ **[What this launch is for](docs/overview.md)** — objective, mechanics, figures, and the limits stated as plainly as the guarantees.
+
+## How it works
+
+```mermaid
+flowchart TD
+    A["A · Sale<br/>fixed price, tokens held in escrow"] --> B{"B · Outcome"}
+    B -->|"sold out, or soft cap by the deadline"| C["C · Migration<br/>permissionless, one transaction"]
+    B -->|"below soft cap, or no migration in 3 days"| R["Refund<br/>100% of the ETH, fee included"]
+    C --> C1["price checked, normalised if it was moved"]
+    C1 --> C2["liquidity minted via the v4 PositionManager"]
+    C2 --> C3["leftover tokens burned"]
+    C3 --> D["D · Claim<br/>buyers withdraw their tokens"]
+    C3 --> E["E · Pool life<br/>swap fees collectable by anyone, to a fixed recipient"]
+```
 
 ## Launch parameters
 
-| | |
+|  |  |
 | --- | --- |
 | Total supply | **100,000,000** tokens (exact) |
 | On sale | 52,631,578.947368421052631579 |
@@ -42,6 +64,7 @@ make install       # pinned dependencies (git submodules)
 make build         # forge build --sizes
 make test          # 20 tests: paths, fuzz, invariants
 make analyze       # build + Slither + Aderyn
+make serve         # the frontend on :8080
 make ci            # the full pull-request pipeline, locally
 make help          # every target
 ```
@@ -52,20 +75,37 @@ Requires [Foundry](https://getfoundry.sh) 1.8.1 (solc 0.8.26, fetched by
 [docs/static-analysis.md](docs/static-analysis.md), versions checked with
 `make versions`.
 
+## Frontend
+
+[`frontend/`](frontend/) is a single static page to read the sale, buy, claim
+and refund. **Zero dependencies, no build step** — four files, so there is no
+npm tree to audit on a page that asks people to sign transactions.
+
+|  |  |
+| --- | --- |
+| No network requests of its own | `connect-src 'none'`; every read and write goes through the wallet |
+| Strict CSP | `default-src 'none'`, no inline script, no `eval`, no `innerHTML` |
+| No approvals, ever | the sale takes native ETH — the most abused signature never appears |
+| Chain and address guards | `eth_chainId` and `eth_getCode` are checked before any transaction |
+| Selectors cannot drift | `make check-selectors` verifies them against the compiled contract, in CI |
+| Money never touches a float | `BigInt` end to end, mirroring the contract's own arithmetic |
+
+Full threat model and deployment notes: [frontend/README.md](frontend/README.md).
+
 ## Testing
 
 20 tests, all green, against **real** Uniswap v4 contracts — a real PoolManager
 and PositionManager, no mocks, with permit2 etched from its precompiled
 bytecode.
 
-| | |
+|  |  |
 | --- | --- |
-| Path tests | 14 — sold-out lifecycle, refunds, price normalisation after a free move, crossing hostile liquidity, fee collection, entry guards, tick saturation cost |
+| Path tests | 14 — sold-out lifecycle, refunds, normalisation after a free move, crossing hostile liquidity, fee collection, entry guards, tick saturation cost |
 | Invariants | I1–I5, I9, I12 over 1,000 runs × depth 150 = **150,000 calls** |
 | Coverage of `src/FixedSaleV4.sol` | 97.50% lines · 100% functions · 63.04% branches |
 
-Every invariant I1–I13 declared in the contract header has a check behind it.
-The invariant → test map is in [docs/testing.md](docs/testing.md).
+Every invariant I1–I13 declared in the contract header has a check behind it;
+the invariant → test map is in [docs/testing.md](docs/testing.md).
 
 ## Static analysis
 
@@ -77,29 +117,33 @@ The invariant → test map is in [docs/testing.md](docs/testing.md).
 
 Every blocking finding is triaged one by one in
 [docs/findings.md](docs/findings.md), with the reason and the exact place it is
-suppressed. The remaining low/informational findings stay visible on every run.
+suppressed. The remaining low and informational findings stay visible on every
+run.
 
 ## CI
 
-`.github/workflows/ci.yml` runs three jobs on every push and pull request —
-build & test, Slither, Aderyn (report uploaded as an artifact).
-`.github/workflows/nightly.yml` runs the heavy campaign at 03:00 UTC with the
+Three jobs on every push and pull request — build & test, Slither, Aderyn
+(report uploaded as an artifact) — plus a nightly campaign at 03:00 UTC with the
 `ci` profile (20k fuzz runs). `main` is protected by the ruleset in
-[`.github/rulesets/main.json`](.github/rulesets/main.json) — see
-[docs/branch-protection.md](docs/branch-protection.md).
+[`.github/rulesets/main.json`](.github/rulesets/main.json); see
+[docs/branch-protection.md](docs/branch-protection.md) for how to apply it.
 
-## Layout
+<details>
+<summary><strong>Repository layout</strong></summary>
 
 ```
 src/            FixedSaleV4.sol — LaunchToken and FixedSaleV4
 test/           path tests, invariant handler, shared fixture
 script/         deploy script carrying the launch parameters
+frontend/       static page: read the sale, buy, claim, refund
 lib/            dependencies, pinned as submodules
-tools/          CI gates (aderyn-gate.sh, check-deps.sh)
+tools/          CI gates (aderyn-gate.sh, check-deps.sh, check-selectors.sh)
 docs/           overview, dependencies, static analysis, findings, testing
 foundry.toml    compiler profiles (default / ci / lite)
 remappings.txt  import remappings into lib/
 ```
+
+</details>
 
 ## Documentation
 
@@ -111,6 +155,7 @@ remappings.txt  import remappings into lib/
 | [findings.md](docs/findings.md) | static-analysis triage and active suppressions |
 | [static-analysis.md](docs/static-analysis.md) | tool setup and triage workflow |
 | [branch-protection.md](docs/branch-protection.md) | the `main` ruleset and how to apply it |
+| [frontend/README.md](frontend/README.md) | frontend security model and deployment |
 
 ## Security
 
