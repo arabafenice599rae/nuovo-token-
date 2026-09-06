@@ -80,30 +80,43 @@
       const offset = Number(BigInt("0x" + body.slice(0, 64))) * 2;
       const length = Number(BigInt("0x" + body.slice(offset, offset + 64)));
       const bytes = body.slice(offset + 64, offset + 64 + length * 2);
-      let out = "";
-      for (let i = 0; i < bytes.length; i += 2) {
-        out += String.fromCharCode(parseInt(bytes.slice(i, i + 2), 16));
-      }
-      return out.replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 32);
+      const buf = new Uint8Array(Math.floor(bytes.length / 2));
+      for (let i = 0; i < buf.length; i++) buf[i] = parseInt(bytes.slice(i * 2, i * 2 + 2), 16);
+      // Solidity strings are UTF-8: decoding byte by byte turns "Citt\u00e0" into
+      // "CittÃ ". Invalid sequences become U+FFFD instead of throwing.
+      const out = new TextDecoder("utf-8").decode(buf);
+      // C0/C1 controls plus the zero-width and bidi-override characters, which a
+      // name chosen by whoever deployed the contract must not smuggle onto the page.
+      return out.replace(/[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "").trim().slice(0, 32);
     } catch (err) {
       return "";
     }
   }
 
-  // Fixed point end to end: money never goes through a float.
-  function formatUnits(value, decimals, maxFractionDigits) {
+  // Fixed point end to end: money never goes through a float. Ungrouped, so the
+  // result can go straight back into an input the parser will read again.
+  function plainUnits(value, decimals, maxFractionDigits) {
     const base = 10n ** BigInt(decimals);
     const negative = value < 0n;
     const abs = negative ? -value : value;
     let frac = (abs % base).toString().padStart(decimals, "0");
     if (typeof maxFractionDigits === "number") frac = frac.slice(0, maxFractionDigits);
     frac = frac.replace(/0+$/, "");
-    const whole = (abs / base).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return (negative ? "-" : "") + whole + (frac ? "." + frac : "");
+    return (negative ? "-" : "") + (abs / base).toString() + (frac ? "." + frac : "");
   }
 
+  // The same number grouped in thousands: for display only.
+  function formatUnits(value, decimals, maxFractionDigits) {
+    const text = plainUnits(value, decimals, maxFractionDigits);
+    const dot = text.indexOf(".");
+    const whole = dot === -1 ? text : text.slice(0, dot);
+    return whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (dot === -1 ? "" : text.slice(dot));
+  }
+
+  // A comma is the decimal separator in most of Europe, and phone keypads offer
+  // whichever one the locale picked: accept both rather than quoting nothing.
   function parseEther(input) {
-    const text = String(input).trim();
+    const text = String(input).trim().replace(",", ".");
     if (!/^\d*\.?\d*$/.test(text) || text === "" || text === ".") return null;
     const parts = text.split(".");
     const whole = parts[0];
@@ -339,7 +352,7 @@
     if (!sale) return;
     const remaining = sale.saleSupply - sale.totalSold;
     if (remaining <= 0n) return;
-    $("amount").value = formatUnits((remaining * sale.price) / WEI + 1n, 18, 18).replace(/,/g, "");
+    $("amount").value = plainUnits((remaining * sale.price) / WEI + 1n, 18, 18);
     updateQuote();
   }
 
@@ -375,6 +388,13 @@
       if (receipt.status === "0x1") $("amount").value = "";
       await quietRefresh();
       return;
+    }
+    // The poll gave up before the receipt landed. Release the lock, or the
+    // background refresh stays parked and the page freezes until a reload.
+    if (pending === hash) {
+      pending = null;
+      status("still pending — check the explorer", "error");
+      await quietRefresh();
     }
   }
 
